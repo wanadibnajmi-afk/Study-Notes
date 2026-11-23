@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>W STUDY HUB</title>
+  <title>8-BIT STUDY HUB // QUEST LOG</title>
   <link rel="icon" type="image/jpeg" href="logo.png.jpg" />
-<link rel="apple-touch-icon" href="logo.png.jpg" />
+  <link rel="apple-touch-icon" href="logo.png.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -36,6 +36,7 @@
       font-size: 1.25rem;
       line-height: 1.4;
       padding: 20px 14px 60px;
+      overflow-x: hidden;
     }
 
     body::after {
@@ -44,9 +45,56 @@
       inset: 0;
       background: repeating-linear-gradient(0deg, rgba(0,0,0,0.14), rgba(0,0,0,0.14) 1px, transparent 1px, transparent 3px);
       pointer-events: none;
-      z-index: 999;
+      z-index: 9999;
     }
 
+    /* ================= 3-SECOND SPINNING GEAR INTRO ================= */
+    #introScreen {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 9000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.5s ease;
+    }
+
+    #introScreen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .intro-gear {
+      width: 220px;
+      height: 220px;
+      object-fit: contain;
+      mix-blend-mode: lighten;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 0 22px rgba(0, 240, 255, 0.55));
+      animation: gearTurn 2.6s cubic-bezier(0.35, 0, 0.25, 1) forwards;
+    }
+
+    @keyframes gearTurn {
+      0% {
+        transform: scale(0.75) rotate(0deg);
+        opacity: 0;
+      }
+      18% {
+        transform: scale(1) rotate(35deg);
+        opacity: 1;
+      }
+      85% {
+        transform: scale(1.04) rotate(360deg);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.12) rotate(380deg);
+        opacity: 0;
+      }
+    }
+
+    /* ================= MAIN HUB STYLES ================= */
     .container { max-width: 1120px; margin: 0 auto; }
 
     .pixel-box {
@@ -66,27 +114,57 @@
       gap: 16px;
     }
 
+    .hud-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .hud-logo {
+      width: 52px;
+      height: 52px;
+      border: 2px solid var(--cyan);
+      box-shadow: 3px 3px 0 #000;
+      flex-shrink: 0;
+    }
+
     .hud-title h1 {
       font-family: 'Press Start 2P', monospace;
-      font-size: clamp(1rem, 2.6vw, 1.4rem);
+      font-size: clamp(0.95rem, 2.5vw, 1.35rem);
       color: var(--cyan);
       text-shadow: 3px 3px 0px #004455;
       line-height: 1.5;
       margin-bottom: 6px;
     }
 
-    .hud-sub { color: var(--green); font-size: 1.2rem; }
+    .hud-sub { color: var(--green); font-size: 1.15rem; }
 
-    .hud-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hud-stats { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
     .stat-badge {
       background: var(--panel-alt);
       border: 2px solid var(--gold);
       padding: 8px 12px;
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       color: var(--gold);
       box-shadow: 3px 3px 0 #000;
+    }
+
+    .replay-btn {
+      background: var(--panel-alt);
+      border: 2px solid var(--cyan);
+      color: var(--cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.58rem;
+      padding: 8px 10px;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #000;
+    }
+
+    .replay-btn:hover {
+      background: var(--cyan);
+      color: #000;
     }
 
     .main-layout {
@@ -369,16 +447,26 @@
   </style>
 </head>
 <body>
+
+  <!-- 3-SECOND SPINNING GEAR ENTRANCE -->
+  <div id="introScreen" onclick="finishIntro()">
+    <img src="logo.png.jpg" alt="W Gear Logo" class="intro-gear" id="introGear" />
+  </div>
+
   <div class="container">
     <!-- TOP HUD -->
     <header class="pixel-box hud">
-      <div class="hud-title">
-        <h1>UTM MECH // STUDY HUB</h1>
-        <div class="hud-sub">&gt; SELECT A COURSE FOLDER TO LAUNCH INTERACTIVE NOTES_</div>
+      <div class="hud-left">
+        <img src="logo.png.jpg" alt="Logo" class="hud-logo" />
+        <div class="hud-title">
+          <h1>UTM MECH // STUDY HUB</h1>
+          <div class="hud-sub">&gt; SELECT A COURSE FOLDER TO LAUNCH INTERACTIVE NOTES_</div>
+        </div>
       </div>
       <div class="hud-stats">
-        <div class="stat-badge" id="questCount">NOTES: 1</div>
+        <div class="stat-badge" id="questCount">NOTES: 2</div>
         <div class="stat-badge" id="bossCount">EXAMS: 11</div>
+        <button class="replay-btn" onclick="replayIntro()" title="Replay Gear Intro">▶ SPIN</button>
       </div>
     </header>
 
@@ -406,12 +494,12 @@
             <p>Free undamped vs. damped graphs, mode shapes, and equivalent system solver.</p>
           </a>
 
-         <a href="flywheel.html" class="quest-card" data-folder="SEMM2223">
-            <span class="quest-tag">SEMM2413 • TOPIC 7</span>
+          <!-- NOTE 2 -->
+          <a href="flywheel.html" class="quest-card" data-folder="SEMM2223">
+            <span class="quest-tag">SEMM2223 • TOPIC 7</span>
             <h3>TURNING MOMENT</h3>
-            <p>4 stroke IC engine &amp; punching machine</p>
+            <p>4 stroke IC engine &amp; punching machine flywheel energy fluctuation.</p>
           </a>
-          
         </div>
       </section>
 
@@ -449,7 +537,43 @@
   </div>
 
   <script>
-    // --- PERMANENT HARDCODED EXAMS (NEVER RESETS ON CODE UPDATE) ---
+    // --- 3-SECOND GEAR INTRO CONTROLLER ---
+    let introTimer;
+
+    function playGearIntro() {
+      const intro = document.getElementById('introScreen');
+      const gear = document.getElementById('introGear');
+
+      intro.style.display = 'flex';
+      intro.classList.remove('fade-out');
+
+      // Reset CSS animation cleanly
+      gear.style.animation = 'none';
+      gear.offsetHeight;
+      gear.style.animation = 'gearTurn 2.6s cubic-bezier(0.35, 0, 0.25, 1) forwards';
+
+      clearTimeout(introTimer);
+      introTimer = setTimeout(() => {
+        finishIntro();
+      }, 2500);
+    }
+
+    function finishIntro() {
+      const intro = document.getElementById('introScreen');
+      intro.classList.add('fade-out');
+      setTimeout(() => {
+        intro.style.display = 'none';
+      }, 500);
+    }
+
+    function replayIntro() {
+      playGearIntro();
+    }
+
+    // Plays every time the page is opened/refreshed (total duration ~3.0s)
+    playGearIntro();
+
+    // --- PERMANENT HARDCODED EXAMS ---
     const PERMANENT_EXAMS = [
       { id: 'p1', date: '2026-11-11', title: 'TEST 1 — THERMO', time: '9.00 - 11.00 PM', fixed: true },
       { id: 'p2', date: '2026-11-13', title: 'TEST 1 — MACHINE', time: '9.00 - 11.00 PM', fixed: true },
