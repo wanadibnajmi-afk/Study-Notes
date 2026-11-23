@@ -1,1 +1,1570 @@
+```html
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEMM2223 Mechanical Vibration — Interactive Study Guide & Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar & clean math styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
 
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 9999px;
+      background: #cbd5e1;
+      outline: none;
+    }
+    .dark input[type="range"] {
+      background: #334155;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4f46e5;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: transform 0.1s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .math-var {
+      font-family: 'Times New Roman', Georgia, serif;
+      font-style: italic;
+    }
+    .math-box {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200 selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+          <!-- Spring Icon SVG -->
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M8 6l8 3-8 3 8 3-8 3 4 2m-8 0h16" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">SEMM2223</span>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white">Mechanical Vibration Interactive Notes</h1>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">1DOF (Free Undamped &amp; Damped) &bull; 2DOF (Natural Frequencies &amp; Mode Shapes)</p>
+        </div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <div class="flex items-center gap-2">
+        <button id="themeToggle" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition text-slate-700 dark:text-slate-200 flex items-center gap-2 text-xs font-medium" aria-label="Toggle Dark Mode">
+          <svg id="sunIcon" class="w-4 h-4 hidden dark:block text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg id="moonIcon" class="w-4 h-4 block dark:hidden text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          <span class="hidden sm:inline" id="themeLabel">Dark Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto gap-1 sm:gap-2 pt-1">
+      <button data-tab="overview" class="tab-btn active-tab whitespace-nowrap px-4 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 transition">
+        1. Concepts &amp; Comparison
+      </button>
+      <button data-tab="lab1dof" class="tab-btn whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition">
+        2. 1DOF Lab &amp; Graphs
+      </button>
+      <button data-tab="lab2dof" class="tab-btn whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition">
+        3. 2DOF Mode Shapes Lab
+      </button>
+      <button data-tab="formulas" class="tab-btn whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition">
+        4. Formulas &amp; Equivalent Systems
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: CONCEPTS & COMPARISON                              -->
+    <!-- ========================================================= -->
+    <section id="tab-overview" class="tab-panel space-y-8">
+      <!-- Intro Banner -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-2 max-w-3xl">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Understanding Mechanical Vibration</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              <strong>Vibration</strong> is any cyclical "back-and-forth" oscillation of a mechanical structure around an equilibrium position. To analyze it, we model physical machines using three fundamental elements: <strong>Mass (<span class="math-var">m</span>)</strong> which stores kinetic energy, <strong>Spring (<span class="math-var">k</span>)</strong> which stores potential energy, and <strong>Damper (<span class="math-var">c</span>)</strong> which dissipates energy as heat.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2 shrink-0">
+            <button onclick="switchTab('lab1dof')" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition">
+              Launch 1DOF Simulator &rarr;
+            </button>
+            <button onclick="switchTab('lab2dof')" class="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-sm font-semibold transition">
+              Launch 2DOF Lab &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Free Undamped vs Free Damped vs Forced -->
+      <div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <span class="w-2 h-6 rounded-full bg-indigo-600 inline-block"></span>
+          Part A: Free Undamped vs. Free Damped vs. Forced Vibration
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Free Undamped Card -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">C = 0, F = 0</span>
+                <span class="text-xs font-mono text-slate-400">&zeta; = 0</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 dark:text-white">1. Free Undamped Vibration</h4>
+              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                The system is displaced or struck <strong>once</strong> and allowed to oscillate freely with <strong>no friction or damping</strong>. Total mechanical energy (<span class="math-var">T + U</span>) stays constant forever.
+              </p>
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 font-mono text-xs space-y-1">
+                <div class="text-slate-500 dark:text-slate-400">Equation of Motion:</div>
+                <div class="font-semibold text-indigo-600 dark:text-indigo-400">m&middot;x&#776; + k&middot;x = 0</div>
+                <div class="text-slate-500 dark:text-slate-400 pt-1">Response:</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-200">x(t) = X<sub>0</sub> cos(&omega;<sub>n</sub>t)</div>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+              <strong>Key Trait:</strong> Oscillates perpetually at constant amplitude <span class="math-var">X<sub>0</sub></span> and natural frequency <span class="math-var">&omega;<sub>n</sub> = &radic;(k/m)</span>.
+            </div>
+          </div>
+
+          <!-- Free Damped Card -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">C &gt; 0, F = 0</span>
+                <span class="text-xs font-mono text-slate-400">&zeta; &gt; 0</span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 dark:text-white">2. Free Damped Vibration</h4>
+              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Disturbed once with no continuous external force, but a <strong>viscous damper (<span class="math-var">c</span>)</strong> removes energy. Vibrations gradually decay until the mass rests at equilibrium.
+              </p>
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 font-mono text-xs space-y-1">
+                <div class="text-slate-500 dark:text-slate-400">Equation of Motion:</div>
+                <div class="font-semibold text-indigo-600 dark:text-indigo-400">m&middot;x&#776; + c&middot;x&#775; + k&middot;x = 0</div>
+                <div class="text-slate-500 dark:text-slate-400 pt-1">Underdamped Response (&zeta; &lt; 1):</div>
+                <div class="font-semibold text-slate-800 dark:text-slate-200">x(t) = X&middot;e<sup>-&zeta;&omega;<sub>n</sub>t</sup> sin(&omega;<sub>d</sub>t + &phi;)</div>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+              <strong>Key Trait:</strong> Oscillates slower than undamped (<span class="math-var">&omega;<sub>d</sub> = &omega;<sub>n</sub>&radic;(1-&zeta;&sup2;)</span>) with exponentially shrinking peaks.
+            </div>
+          </div>
+
+          <!-- Forced Vibration Card -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">F(t) &ne; 0</span>
+                <span class="text-xs font-mono text-slate-400">&omega;<sub>f</sub></span>
+              </div>
+              <h4 class="text-base font-bold text-slate-900 dark:text-white">3. Forced Vibration</h4>
+              <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                An external periodic force <span class="math-var">F(t) = F<sub>0</sub>sin(&omega;<sub>f</sub>t)</span> is <strong>repeatedly applied</strong> (e.g., rotating unbalance or bumpy road), sustaining the vibration continuously.
+              </p>
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 font-mono text-xs space-y-1">
+                <div class="text-slate-500 dark:text-slate-400">Equation of Motion:</div>
+                <div class="font-semibold text-indigo-600 dark:text-indigo-400">m&middot;x&#776; + c&middot;x&#775; + k&middot;x = F(t)</div>
+                <div class="text-slate-500 dark:text-slate-400 pt-1">Resonance Danger:</div>
+                <div class="font-semibold text-rose-600 dark:text-rose-400">Occurs when &omega;<sub>f</sub> &approx; &omega;<sub>n</sub></div>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+              <strong>Key Trait:</strong> Steady-state vibration happens at the <em>forcing frequency</em> <span class="math-var">&omega;<sub>f</sub></span>, not <span class="math-var">&omega;<sub>n</sub></span>.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- The 3 Damping Regimes -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Part B: The Three Damping Cases (Damping Ratio <span class="math-var">&zeta; = c / c<sub>c</sub></span>)</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Critical damping <span class="math-var">c<sub>c</sub> = 2&radic;(km) = 2m&omega;<sub>n</sub></span> is the exact threshold that prevents oscillation.</p>
+          </div>
+          <button onclick="switchTab('lab1dof')" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline self-start sm:self-auto">
+            Test all 3 regimes interactively &rarr;
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-amber-900 dark:text-amber-300">Underdamped (&zeta; &lt; 1)</span>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-amber-200/70 dark:bg-amber-900 text-amber-900 dark:text-amber-200">Oscillates</span>
+            </div>
+            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              Damping is less than critical (<span class="math-var">c &lt; c<sub>c</sub></span>). The mass overshoots equilibrium and oscillates back and forth with exponentially decaying amplitude. Has damped frequency <span class="math-var">&omega;<sub>d</sub></span>.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-emerald-900 dark:text-emerald-300">Critically Damped (&zeta; = 1)</span>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-emerald-200/70 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200">Fastest Stop</span>
+            </div>
+            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              Damping equals critical (<span class="math-var">c = c<sub>c</sub></span>). The system returns to equilibrium in the <strong>shortest possible time without overshooting</strong>. Ideal for door closers and precision gauges.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-sky-900 dark:text-sky-300">Overdamped (&zeta; &gt; 1)</span>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-sky-200/70 dark:bg-sky-900 text-sky-900 dark:text-sky-200">Sluggish</span>
+            </div>
+            <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              Damping exceeds critical (<span class="math-var">c &gt; c<sub>c</sub></span>). Heavy resistance prevents any oscillation, causing the mass to creep slowly back to equilibrium.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1DOF vs 2DOF Comparison Table -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 dark:border-slate-800">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Part C: 1DOF vs. 2DOF Systems at a Glance</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Degrees of Freedom (DOF) = minimum number of independent coordinates needed to specify the position of all masses at any time.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">
+                <th class="py-3 px-4 font-semibold">Characteristic</th>
+                <th class="py-3 px-4 font-semibold text-indigo-600 dark:text-indigo-400">Single Degree of Freedom (1DOF)</th>
+                <th class="py-3 px-4 font-semibold text-emerald-600 dark:text-emerald-400">Two Degrees of Freedom (2DOF)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+              <tr>
+                <td class="py-3 px-4 font-medium">Independent Coordinates</td>
+                <td class="py-3 px-4">1 coordinate (e.g., <span class="font-mono">x</span> or <span class="font-mono">&theta;</span>)</td>
+                <td class="py-3 px-4">2 coordinates (e.g., <span class="font-mono">x<sub>1</sub>, x<sub>2</sub></span> or <span class="font-mono">x, &theta;</span>)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-medium">Equation of Motion</td>
+                <td class="py-3 px-4 font-mono text-xs">M<sub>eq</sub>x&#776; + C<sub>eq</sub>x&#775; + K<sub>eq</sub>x = 0</td>
+                <td class="py-3 px-4 font-mono text-xs">[M]{x&#776;} + [C]{x&#775;} + [K]{x} = {0} (2 coupled ODEs)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-medium">Natural Frequencies</td>
+                <td class="py-3 px-4"><strong>1</strong> natural frequency (<span class="font-mono">&omega;<sub>n</sub></span>)</td>
+                <td class="py-3 px-4"><strong>2</strong> natural frequencies (<span class="font-mono">&omega;<sub>n1</sub></span> and <span class="font-mono">&omega;<sub>n2</sub></span>)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-medium">Mode Shapes</td>
+                <td class="py-3 px-4">None (only 1 mass moves)</td>
+                <td class="py-3 px-4"><strong>2 Mode Shapes</strong>: Mode 1 (In-phase) &amp; Mode 2 (Out-of-phase)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-medium">Engineering Application</td>
+                <td class="py-3 px-4">Simple machine mount, quarter-car suspension</td>
+                <td class="py-3 px-4">Half-car bounce &amp; pitch, <strong>Dynamic Vibration Absorber</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 2: 1DOF INTERACTIVE LAB & GRAPHS                      -->
+    <!-- ========================================================= -->
+    <section id="tab-lab1dof" class="tab-panel hidden space-y-6">
+      <!-- Top Preset Bar -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Quick Presets:</span>
+          <button onclick="apply1DOFPreset(4, 400, 0, 0.8)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hover:opacity-80 transition">
+            Undamped (&zeta; = 0)
+          </button>
+          <button onclick="apply1DOFPreset(4, 400, 4, 0.8)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 hover:opacity-80 transition">
+            Lightly Damped (&zeta; = 0.05)
+          </button>
+          <button onclick="apply1DOFPreset(4, 400, 16, 0.8)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 hover:opacity-80 transition">
+            Underdamped (&zeta; = 0.20)
+          </button>
+          <button onclick="apply1DOFPreset(4, 400, 80, 0.8)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 hover:opacity-80 transition">
+            Critically Damped (&zeta; = 1.0)
+          </button>
+          <button onclick="apply1DOFPreset(4, 400, 120, 0.8)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 hover:opacity-80 transition">
+            Overdamped (&zeta; = 1.5)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="playPause1DOF" onclick="toggle1DOFPlay()" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+            <span id="playPause1DOFText">Pause</span>
+          </button>
+          <button onclick="reset1DOFTime()" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition">
+            Restart t=0
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Simulator Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Controls (4 cols) -->
+        <div class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 class="font-bold text-sm text-slate-900 dark:text-white">System Parameters</h3>
+            <span id="regimeBadge1DOF" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Underdamped</span>
+          </div>
+
+          <!-- Mass Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label for="m1dof" class="font-semibold text-slate-700 dark:text-slate-300">Mass (<span class="math-var">m</span>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="m1dofVal">4.0</span> kg</span>
+            </div>
+            <input id="m1dof" type="range" min="1" max="20" step="0.5" value="4" class="w-full" />
+          </div>
+
+          <!-- Stiffness Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label for="k1dof" class="font-semibold text-slate-700 dark:text-slate-300">Spring Stiffness (<span class="math-var">k</span>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="k1dofVal">400</span> N/m</span>
+            </div>
+            <input id="k1dof" type="range" min="50" max="1500" step="10" value="400" class="w-full" />
+          </div>
+
+          <!-- Damping Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label for="c1dof" class="font-semibold text-slate-700 dark:text-slate-300">Damping Coeff. (<span class="math-var">c</span>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="c1dofVal">16</span> N&middot;s/m</span>
+            </div>
+            <input id="c1dof" type="range" min="0" max="250" step="1" value="16" class="w-full" />
+          </div>
+
+          <!-- Initial Displacement Slider -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <label for="x01dof" class="font-semibold text-slate-700 dark:text-slate-300">Initial Displacement (<span class="math-var">X<sub>0</sub></span>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="x01dofVal">0.80</span> m</span>
+            </div>
+            <input id="x01dof" type="range" min="0.2" max="1.0" step="0.05" value="0.80" class="w-full" />
+          </div>
+
+          <!-- Live Calculated Metrics -->
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Live Calculated Values</h4>
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Natural Freq (&omega;<sub>n</sub>)</div>
+                <div class="font-mono font-bold text-slate-900 dark:text-white mt-0.5"><span id="outWn">10.00</span> rad/s</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Frequency (f<sub>n</sub>)</div>
+                <div class="font-mono font-bold text-slate-900 dark:text-white mt-0.5"><span id="outFn">1.59</span> Hz</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Critical Damping (c<sub>c</sub>)</div>
+                <div class="font-mono font-bold text-slate-900 dark:text-white mt-0.5"><span id="outCc">80.00</span> N&middot;s/m</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Damping Ratio (&zeta;)</div>
+                <div class="font-mono font-bold text-indigo-600 dark:text-indigo-400 mt-0.5"><span id="outZeta">0.200</span></div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Damped Freq (&omega;<sub>d</sub>)</div>
+                <div class="font-mono font-bold text-slate-900 dark:text-white mt-0.5"><span id="outWd">9.80</span> rad/s</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80">
+                <div class="text-slate-500 dark:text-slate-400">Damped Period (T<sub>d</sub>)</div>
+                <div class="font-mono font-bold text-slate-900 dark:text-white mt-0.5"><span id="outTd">0.641</span> s</div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-xs flex justify-between items-center">
+              <span class="text-slate-600 dark:text-slate-300">1-Cycle Peak Ratio (X<sub>0</sub> / X<sub>1</sub>):</span>
+              <span class="font-mono font-bold text-indigo-700 dark:text-indigo-300" id="outDecayRatio">3.61</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Visuals: Physical Schematic + Time Graph (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+          <!-- Canvas Container -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white">Real-Time Mass-Spring-Damper &amp; Displacement Graph <span class="math-var">x(t)</span></h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Left: Physical 1DOF oscillator &bull; Right: Time-domain displacement curve &amp; decay envelope</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-indigo-600 inline-block"></span> x(t)</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 border-t-2 border-dashed border-rose-500 inline-block"></span> &plusmn;X<sub>0</sub>e<sup>-&zeta;&omega;<sub>n</sub>t</sup></span>
+              </div>
+            </div>
+            <div class="w-full h-80 sm:h-96 relative rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+              <canvas id="canvas1DOF" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+
+          <!-- Dynamic Interpretation Box -->
+          <div id="insight1DOF" class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: 2DOF INTERACTIVE LAB & MODE SHAPES                 -->
+    <!-- ========================================================= -->
+    <section id="tab-lab2dof" class="tab-panel hidden space-y-6">
+      <!-- Mode & Preset Controls -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Excitation Mode:</span>
+          <button onclick="set2DOFMode('mode1')" id="btnMode1" class="mode2dof-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-sm transition">
+            Mode 1 (In-Phase, &omega;<sub>n1</sub>)
+          </button>
+          <button onclick="set2DOFMode('mode2')" id="btnMode2" class="mode2dof-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            Mode 2 (Out-of-Phase, &omega;<sub>n2</sub>)
+          </button>
+          <button onclick="set2DOFMode('combined')" id="btnModeCombined" class="mode2dof-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+            Combined Free Motion (Beats)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="apply2DOFPreset('symmetric')" class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Symmetric System
+          </button>
+          <button onclick="apply2DOFPreset('absorber')" class="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            Vibration Absorber Ratio
+          </button>
+          <button id="playPause2DOF" onclick="toggle2DOFPlay()" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition">
+            <span id="playPause2DOFText">Pause</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Controls & Eigenvalue Readout (4 cols) -->
+        <div class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="font-bold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">2DOF System Parameters</h3>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <label class="font-semibold">Mass <span class="math-var">m<sub>1</sub></span></label>
+                <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="m1_2dofVal">2.0</span> kg</span>
+              </div>
+              <input id="m1_2dof" type="range" min="1" max="10" step="0.5" value="2" class="w-full" />
+            </div>
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <label class="font-semibold">Mass <span class="math-var">m<sub>2</sub></span></label>
+                <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400"><span id="m2_2dofVal">2.0</span> kg</span>
+              </div>
+              <input id="m2_2dof" type="range" min="0.5" max="10" step="0.5" value="2" class="w-full" />
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="font-semibold">Left Spring <span class="math-var">k<sub>1</sub></span> (Wall to m<sub>1</sub>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="k1_2dofVal">200</span> N/m</span>
+            </div>
+            <input id="k1_2dof" type="range" min="50" max="800" step="25" value="200" class="w-full" />
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="font-semibold">Coupling Spring <span class="math-var">k<sub>2</sub></span> (m<sub>1</sub> to m<sub>2</sub>)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="k2_2dofVal">200</span> N/m</span>
+            </div>
+            <input id="k2_2dof" type="range" min="25" max="800" step="25" value="200" class="w-full" />
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="font-semibold">Right Spring <span class="math-var">k<sub>3</sub></span> (m<sub>2</sub> to Wall, 0 = free)</label>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="k3_2dofVal">200</span> N/m</span>
+            </div>
+            <input id="k3_2dof" type="range" min="0" max="800" step="25" value="200" class="w-full" />
+          </div>
+
+          <!-- Eigenvalues & Mode Shapes Output -->
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Natural Frequencies &amp; Mode Shapes</h4>
+
+            <div class="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 space-y-1 text-xs">
+              <div class="flex justify-between font-bold text-indigo-900 dark:text-indigo-300">
+                <span>1st Mode (In-Phase):</span>
+                <span class="font-mono">&omega;<sub>n1</sub> = <span id="outWn1">10.00</span> rad/s</span>
+              </div>
+              <div class="flex justify-between text-slate-600 dark:text-slate-300 font-mono">
+                <span>Amplitude Ratio (X<sub>2</sub>/X<sub>1</sub>)<sup>(1)</sup>:</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400" id="outRatio1">+1.000</span>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 space-y-1 text-xs">
+              <div class="flex justify-between font-bold text-rose-900 dark:text-rose-300">
+                <span>2nd Mode (Out-of-Phase):</span>
+                <span class="font-mono">&omega;<sub>n2</sub> = <span id="outWn2">17.32</span> rad/s</span>
+              </div>
+              <div class="flex justify-between text-slate-600 dark:text-slate-300 font-mono">
+                <span>Amplitude Ratio (X<sub>2</sub>/X<sub>1</sub>)<sup>(2)</sup>:</span>
+                <span class="font-bold text-rose-600 dark:text-rose-400" id="outRatio2">-1.000</span>
+              </div>
+            </div>
+
+            <!-- Live Matrix Display -->
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 font-mono text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
+              <div class="text-slate-400 font-sans font-semibold text-xs">System Matrices:</div>
+              <div id="matrixReadout">[M] = diag(2.0, 2.0) kg<br>[K] = [[400, -200], [-200, 400]] N/m</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Visuals: 2DOF Schematic + Dual-Trace Graph (8 cols) -->
+        <div class="lg:col-span-8 space-y-6">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900 dark:text-white">2DOF Coupled Oscillator &amp; Dual-Coordinate Response</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Top: Coupled mass-spring schematic &bull; Bottom: Synchronized <span class="math-var">x<sub>1</sub>(t)</span> and <span class="math-var">x<sub>2</sub>(t)</span> waveforms</p>
+              </div>
+              <div class="flex items-center gap-4 text-xs font-semibold">
+                <span class="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400"><span class="w-3 h-1 rounded bg-indigo-600 inline-block"></span> Mass 1: x<sub>1</sub>(t)</span>
+                <span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400"><span class="w-3 h-1 rounded bg-emerald-500 inline-block"></span> Mass 2: x<sub>2</sub>(t)</span>
+              </div>
+            </div>
+            <div class="w-full h-96 relative rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+              <canvas id="canvas2DOF" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+
+          <div id="insight2DOF" class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 4: FORMULAS & EQUIVALENT SYSTEM CALCULATOR            -->
+    <!-- ========================================================= -->
+    <section id="tab-formulas" class="tab-panel hidden space-y-8">
+      <!-- Interactive Equivalent System Calculator -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+        <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Interactive Exam Tool</span>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Equivalent System Lever-Arm Transfer Calculator</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            In SEMM2223, complex pivoted beam systems are reduced to a single reference point at distance <span class="math-var">b</span> from pivot <span class="math-var">O</span> using energy equivalence: <span class="font-mono font-semibold text-indigo-600 dark:text-indigo-400">X<sub>eq</sub> = X &middot; (a / b)&sup2;</span>.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          <!-- Inputs -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">1. Lever Distances from Pivot O</h4>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold mb-1">Component Dist. <span class="math-var">a</span> (m)</label>
+                <input id="eq_a" type="number" step="0.05" value="0.4" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Reference Dist. <span class="math-var">b</span> (m)</label>
+                <input id="eq_b" type="number" step="0.05" value="0.2" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+            </div>
+
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 pt-2">2. Component Values at Distance <span class="math-var">a</span></h4>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold mb-1">Lumped Mass <span class="math-var">m</span> (kg)</label>
+                <input id="eq_m" type="number" step="0.5" value="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Beam Inertia <span class="math-var">I<sub>O</sub></span> (kg&middot;m&sup2;)</label>
+                <input id="eq_Io" type="number" step="0.01" value="0.05" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Spring <span class="math-var">k</span> (N/m)</label>
+                <input id="eq_k" type="number" step="50" value="1000" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Damper <span class="math-var">c</span> (N&middot;s/m)</label>
+                <input id="eq_c" type="number" step="10" value="100" class="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Lever Diagram -->
+          <div class="bg-slate-50 dark:bg-slate-950 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center h-full">
+            <svg viewBox="0 0 280 150" class="w-full max-w-xs">
+              <!-- Ground / Pivot -->
+              <polygon points="70,95 60,115 80,115" fill="#64748b"/>
+              <line x1="50" y1="115" x2="90" y2="115" stroke="#64748b" stroke-width="3"/>
+              <!-- Beam -->
+              <line x1="30" y1="90" x2="250" y2="90" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="70" cy="90" r="5" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>
+              <text x="65" y="132" font-size="11" font-family="monospace" fill="#64748b">Pivot O</text>
+              <!-- Reference point b -->
+              <circle cx="140" cy="90" r="5" fill="#4f46e5"/>
+              <text x="128" y="78" font-size="11" font-weight="bold" font-family="sans-serif" fill="#4f46e5">Ref (b)</text>
+              <!-- Component point a -->
+              <circle cx="230" cy="90" r="6" fill="#10b981"/>
+              <text x="210" y="78" font-size="11" font-weight="bold" font-family="sans-serif" fill="#10b981">Comp (a)</text>
+              <!-- Dimension lines -->
+              <line x1="70" y1="45" x2="140" y2="45" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="3,2"/>
+              <text x="100" y="40" font-size="11" font-family="monospace" fill="#4f46e5">b</text>
+              <line x1="70" y1="25" x2="230" y2="25" stroke="#10b981" stroke-width="1.5"/>
+              <text x="145" y="20" font-size="11" font-family="monospace" fill="#10b981">a</text>
+            </svg>
+            <p class="text-[11px] text-center text-slate-500 dark:text-slate-400 mt-2">
+              Transfer Ratio <span class="font-mono font-bold text-slate-700 dark:text-slate-200">(a/b)&sup2; = <span id="eq_ratio">4.00</span></span>
+            </p>
+          </div>
+
+          <!-- Transferred Results -->
+          <div class="space-y-2.5">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">3. Equivalent Values at Reference <span class="math-var">b</span></h4>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex justify-between items-center text-xs">
+              <span>m<sub>eq</sub> = m(a/b)&sup2;</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="res_meq">4.00</span> kg</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex justify-between items-center text-xs">
+              <span>M<sub>beam,eq</sub> = I<sub>O</sub> / b&sup2;</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400"><span id="res_Ieq">1.25</span> kg</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex justify-between items-center text-xs">
+              <span>k<sub>eq</sub> = k(a/b)&sup2;</span>
+              <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400"><span id="res_keq">4000.0</span> N/m</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex justify-between items-center text-xs">
+              <span>c<sub>eq</sub> = c(a/b)&sup2;</span>
+              <span class="font-mono font-bold text-amber-600 dark:text-amber-400"><span id="res_ceq">400.0</span> N&middot;s/m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Complete Formula Reference Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 1DOF Formula Card -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            1DOF Vibration Formula Sheet
+          </h3>
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Natural Frequency (&omega;<sub>n</sub>)</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">&omega;<sub>n</sub> = &radic;(K<sub>eq</sub> / M<sub>eq</sub>) = &radic;(g / &delta;<sub>st</sub>)</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Frequency (Hz) &amp; Period (s)</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">f<sub>n</sub> = &omega;<sub>n</sub> / 2&pi; , &nbsp; T<sub>n</sub> = 2&pi; / &omega;<sub>n</sub></span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Critical Damping (C<sub>c</sub>)</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">C<sub>c</sub> = 2&radic;(K<sub>eq</sub>M<sub>eq</sub>) = 2M<sub>eq</sub>&omega;<sub>n</sub></span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Damping Ratio (&zeta;)</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">&zeta; = C<sub>eq</sub> / C<sub>c</sub> = C<sub>eq</sub> / (2M<sub>eq</sub>&omega;<sub>n</sub>)</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Damped Frequency (&omega;<sub>d</sub>)</span>
+              <span class="font-mono font-bold text-amber-600 dark:text-amber-400">&omega;<sub>d</sub> = &omega;<sub>n</sub>&radic;(1 - &zeta;&sup2;) , &nbsp; T<sub>d</sub> = 2&pi; / &omega;<sub>d</sub></span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Logarithmic Decrement (n cycles)</span>
+              <span class="font-mono font-bold text-rose-600 dark:text-rose-400">ln(X<sub>0</sub> / X<sub>n</sub>) = (n &middot; 2&pi;&zeta;) / &radic;(1 - &zeta;&sup2;)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equivalent Elements & 2DOF Card -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
+            Equivalent Elements &amp; 2DOF Equations
+          </h3>
+          <div class="space-y-3 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Parallel Springs / Dampers</span>
+              <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">K<sub>eq</sub> = K<sub>1</sub> + K<sub>2</sub> , &nbsp; C<sub>eq</sub> = C<sub>1</sub> + C<sub>2</sub></span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Series Springs / Dampers</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">1/K<sub>eq</sub> = 1/K<sub>1</sub> + 1/K<sub>2</sub></span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Homogeneous Rod (Pinned End)</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">I<sub>O</sub> = mL&sup2;/3 &rArr; M<sub>eq,tip</sub> = m / 3</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Uniform Pulley Disc (Rim)</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">I<sub>O</sub> = mr&sup2;/2 &rArr; M<sub>eq,rim</sub> = m / 2</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Simple Pendulum</span>
+              <span class="font-mono font-bold text-slate-800 dark:text-slate-200">K<sub>eq</sub> = mg / L &rArr; &omega;<sub>n</sub> = &radic;(g / L)</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 flex justify-between items-center">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">2DOF Eigenvalue Equation</span>
+              <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">det( [K] - &omega;&sup2;[M] ) = 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+    Mechanics of Machines &amp; Vibration (SEMM2223) &bull; Interactive Study Reference
+  </footer>
+
+  <!-- Interactive Simulation & UI Logic -->
+  <script>
+    // =========================================================================
+    // 1. THEME & TAB NAVIGATION
+    // =========================================================================
+    const htmlEl = document.documentElement;
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+
+    themeToggleBtn.addEventListener('click', () => {
+      htmlEl.classList.toggle('dark');
+      const isDark = htmlEl.classList.contains('dark');
+      themeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    });
+
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    function switchTab(tabId) {
+      tabBtns.forEach(btn => {
+        const isTarget = btn.dataset.tab === tabId;
+        if (isTarget) {
+          btn.classList.add('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400', 'dark:border-indigo-400', 'font-semibold');
+          btn.classList.remove('border-transparent', 'text-slate-600', 'dark:text-slate-400', 'font-medium');
+        } else {
+          btn.classList.remove('border-indigo-600', 'text-indigo-600', 'dark:text-indigo-400', 'dark:border-indigo-400', 'font-semibold');
+          btn.classList.add('border-transparent', 'text-slate-600', 'dark:text-slate-400', 'font-medium');
+        }
+      });
+
+      tabPanels.forEach(panel => {
+        panel.classList.toggle('hidden', panel.id !== `tab-${tabId}`);
+      });
+
+      // Trigger resize so canvases adjust immediately when made visible
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // =========================================================================
+    // 2. 1DOF SIMULATION & GRAPH ENGINE
+    // =========================================================================
+    const state1DOF = {
+      m: 4,
+      k: 400,
+      c: 16,
+      x0: 0.8,
+      t: 0,
+      playing: true,
+      wn: 10,
+      fn: 1.59,
+      cc: 80,
+      zeta: 0.2,
+      wd: 9.8,
+      td: 0.641
+    };
+
+    const m1dofSlider = document.getElementById('m1dof');
+    const k1dofSlider = document.getElementById('k1dof');
+    const c1dofSlider = document.getElementById('c1dof');
+    const x01dofSlider = document.getElementById('x01dof');
+
+    function update1DOFParams() {
+      state1DOF.m = parseFloat(m1dofSlider.value);
+      state1DOF.k = parseFloat(k1dofSlider.value);
+      state1DOF.c = parseFloat(c1dofSlider.value);
+      state1DOF.x0 = parseFloat(x01dofSlider.value);
+
+      document.getElementById('m1dofVal').textContent = state1DOF.m.toFixed(1);
+      document.getElementById('k1dofVal').textContent = state1DOF.k.toFixed(0);
+      document.getElementById('c1dofVal').textContent = state1DOF.c.toFixed(0);
+      document.getElementById('x01dofVal').textContent = state1DOF.x0.toFixed(2);
+
+      const { m, k, c } = state1DOF;
+      const wn = Math.sqrt(k / m);
+      const fn = wn / (2 * Math.PI);
+      const cc = 2 * Math.sqrt(k * m);
+      const zeta = c / cc;
+
+      state1DOF.wn = wn;
+      state1DOF.fn = fn;
+      state1DOF.cc = cc;
+      state1DOF.zeta = zeta;
+
+      document.getElementById('outWn').textContent = wn.toFixed(2);
+      document.getElementById('outFn').textContent = fn.toFixed(2);
+      document.getElementById('outCc').textContent = cc.toFixed(2);
+      document.getElementById('outZeta').textContent = zeta.toFixed(3);
+
+      const badge = document.getElementById('regimeBadge1DOF');
+      const insight = document.getElementById('insight1DOF');
+
+      if (zeta === 0) {
+        state1DOF.wd = wn;
+        state1DOF.td = (2 * Math.PI) / wn;
+        document.getElementById('outWd').textContent = wn.toFixed(2);
+        document.getElementById('outTd').textContent = state1DOF.td.toFixed(3);
+        document.getElementById('outDecayRatio').textContent = '1.00 (No Decay)';
+        badge.textContent = 'Undamped (ζ = 0)';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+        insight.innerHTML = `<strong>Undamped Regime (&zeta; = 0):</strong> With zero damping, mechanical energy is completely conserved. The mass oscillates forever between <span class="font-mono">+${state1DOF.x0.toFixed(2)} m</span> and <span class="font-mono">-${state1DOF.x0.toFixed(2)} m</span> at its natural frequency <span class="font-mono">&omega;<sub>n</sub> = ${wn.toFixed(2)} rad/s</span>.`;
+      } else if (zeta < 1) {
+        const wd = wn * Math.sqrt(1 - zeta * zeta);
+        const td = (2 * Math.PI) / wd;
+        const logDec = (2 * Math.PI * zeta) / Math.sqrt(1 - zeta * zeta);
+        const ratio = Math.exp(logDec);
+        state1DOF.wd = wd;
+        state1DOF.td = td;
+        document.getElementById('outWd').textContent = wd.toFixed(2);
+        document.getElementById('outTd').textContent = td.toFixed(3);
+        document.getElementById('outDecayRatio').textContent = ratio.toFixed(2);
+        badge.textContent = 'Underdamped (ζ < 1)';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300';
+        insight.innerHTML = `<strong>Underdamped Regime (&zeta; = ${zeta.toFixed(3)} &lt; 1):</strong> The system oscillates at the damped natural frequency <span class="font-mono">&omega;<sub>d</sub> = ${wd.toFixed(2)} rad/s</span> (slightly slower than &omega;<sub>n</sub> = ${wn.toFixed(2)} rad/s). Each complete cycle reduces the peak amplitude by a factor of <span class="font-mono">${ratio.toFixed(2)}</span> along the dashed red decay envelope.`;
+      } else if (Math.abs(zeta - 1) < 0.015) {
+        state1DOF.wd = 0;
+        state1DOF.td = Infinity;
+        document.getElementById('outWd').textContent = '0.00 (No Osc.)';
+        document.getElementById('outTd').textContent = '∞';
+        document.getElementById('outDecayRatio').textContent = 'N/A (No Overshoot)';
+        badge.textContent = 'Critically Damped (ζ = 1)';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300';
+        insight.innerHTML = `<strong>Critically Damped Regime (&zeta; &approx; 1.0):</strong> Damping equals <span class="font-mono">c<sub>c</sub> = ${cc.toFixed(1)} N&middot;s/m</span>. Notice how the mass returns to the neutral equilibrium line (<span class="font-mono">x = 0</span>) in the <strong>shortest possible time without crossing zero</strong>.`;
+      } else {
+        state1DOF.wd = 0;
+        state1DOF.td = Infinity;
+        document.getElementById('outWd').textContent = '0.00 (No Osc.)';
+        document.getElementById('outTd').textContent = '∞';
+        document.getElementById('outDecayRatio').textContent = 'N/A (Sluggish)';
+        badge.textContent = 'Overdamped (ζ > 1)';
+        badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300';
+        insight.innerHTML = `<strong>Overdamped Regime (&zeta; = ${zeta.toFixed(3)} &gt; 1):</strong> Excessive damping (<span class="font-mono">c &gt; c<sub>c</sub></span>) creates heavy viscous resistance. The mass does not oscillate and creeps back to equilibrium much slower than the critically damped case.`;
+      }
+    }
+
+    // Exact analytical displacement x(t) for initial release from rest (x(0)=X0, v(0)=0)
+    function eval1DOF(t) {
+      const { x0, wn, zeta, wd } = state1DOF;
+      if (zeta === 0) {
+        return x0 * Math.cos(wn * t);
+      } else if (zeta < 1) {
+        const phi = Math.atan2(Math.sqrt(1 - zeta * zeta), zeta);
+        const amp = x0 / Math.sqrt(1 - zeta * zeta);
+        return amp * Math.exp(-zeta * wn * t) * Math.sin(wd * t + phi);
+      } else if (Math.abs(zeta - 1) < 0.005) {
+        return x0 * (1 + wn * t) * Math.exp(-wn * t);
+      } else {
+        const s = Math.sqrt(zeta * zeta - 1);
+        const r1 = -wn * (zeta - s);
+        const r2 = -wn * (zeta + s);
+        const c1 = (x0 * r2) / (r2 - r1);
+        const c2 = (-x0 * r1) / (r2 - r1);
+        return c1 * Math.exp(r1 * t) + c2 * Math.exp(r2 * t);
+      }
+    }
+
+    function apply1DOFPreset(m, k, c, x0) {
+      m1dofSlider.value = m;
+      k1dofSlider.value = k;
+      c1dofSlider.value = c;
+      x01dofSlider.value = x0;
+      state1DOF.t = 0;
+      update1DOFParams();
+    }
+
+    function toggle1DOFPlay() {
+      state1DOF.playing = !state1DOF.playing;
+      document.getElementById('playPause1DOFText').textContent = state1DOF.playing ? 'Pause' : 'Play';
+    }
+
+    function reset1DOFTime() {
+      state1DOF.t = 0;
+    }
+
+    [m1dofSlider, k1dofSlider, c1dofSlider, x01dofSlider].forEach(el => {
+      el.addEventListener('input', () => {
+        update1DOFParams();
+      });
+    });
+
+    // Helper to draw a realistic zigzag spring
+    function drawSpring(ctx, x1, y1, x2, y2, coils, width, color) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+
+      const lead = Math.min(14, len * 0.15);
+      const bodyLen = len - 2 * lead;
+      ctx.moveTo(0, 0);
+      ctx.lineTo(lead, 0);
+
+      const step = bodyLen / (coils * 2);
+      for (let i = 0; i < coils * 2; i++) {
+        const px = lead + (i + 0.5) * step;
+        const py = (i % 2 === 0 ? -1 : 1) * width;
+        ctx.lineTo(px, py);
+      }
+      ctx.lineTo(len - lead, 0);
+      ctx.lineTo(len, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Helper to draw a viscous dashpot damper
+    function drawDamper(ctx, x1, y1, x2, y2, color) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.2;
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      ctx.translate(x1, y1);
+      ctx.rotate(angle);
+
+      const mid = len * 0.45;
+      const cylLen = Math.min(28, len * 0.35);
+      const cylHalfW = 8;
+
+      // Top rod & piston
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(mid, 0);
+      ctx.moveTo(mid, -cylHalfW + 2);
+      ctx.lineTo(mid, cylHalfW - 2);
+      ctx.stroke();
+
+      // Cylinder housing from bottom
+      const cylStart = len * 0.32;
+      ctx.beginPath();
+      ctx.moveTo(cylStart, -cylHalfW);
+      ctx.lineTo(cylStart + cylLen, -cylHalfW);
+      ctx.lineTo(cylStart + cylLen, cylHalfW);
+      ctx.lineTo(cylStart, cylHalfW);
+      ctx.moveTo(cylStart + cylLen, 0);
+      ctx.lineTo(len, 0);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    const canvas1DOF = document.getElementById('canvas1DOF');
+    const ctx1DOF = canvas1DOF.getContext('2d');
+
+    function render1DOF() {
+      const rect = canvas1DOF.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas1DOF.width !== Math.floor(rect.width * dpr) || canvas1DOF.height !== Math.floor(rect.height * dpr)) {
+        canvas1DOF.width = Math.floor(rect.width * dpr);
+        canvas1DOF.height = Math.floor(rect.height * dpr);
+      }
+      ctx1DOF.save();
+      ctx1DOF.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      const isDark = htmlEl.classList.contains('dark');
+
+      ctx1DOF.clearRect(0, 0, W, H);
+
+      // Layout split: Left 34% physical schematic, Right 66% x(t) graph
+      const splitX = Math.max(150, W * 0.34);
+      const eqY = H * 0.5;
+      const maxAmpPx = H * 0.32;
+
+      const curX = eval1DOF(state1DOF.t);
+      const massY = eqY - curX * maxAmpPx; // positive x upward
+
+      // --- LEFT: PHYSICAL SCHEMATIC ---
+      const centerX = splitX * 0.5;
+      const ceilY = 24;
+
+      // Ceiling support
+      ctx1DOF.fillStyle = isDark ? '#334155' : '#cbd5e1';
+      ctx1DOF.fillRect(centerX - 55, ceilY - 8, 110, 8);
+      ctx1DOF.strokeStyle = isDark ? '#64748b' : '#475569';
+      ctx1DOF.lineWidth = 2;
+      ctx1DOF.beginPath();
+      ctx1DOF.moveTo(centerX - 55, ceilY);
+      ctx1DOF.lineTo(centerX + 55, ceilY);
+      ctx1DOF.stroke();
+
+      // Equilibrium reference line
+      ctx1DOF.strokeStyle = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.25)';
+      ctx1DOF.setLineDash([4, 4]);
+      ctx1DOF.beginPath();
+      ctx1DOF.moveTo(16, eqY);
+      ctx1DOF.lineTo(W - 20, eqY);
+      ctx1DOF.stroke();
+      ctx1DOF.setLineDash([]);
+
+      // Spring (left) & Damper (right if c > 0)
+      const massTop = massY - 22;
+      if (state1DOF.c > 0) {
+        drawSpring(ctx1DOF, centerX - 22, ceilY, centerX - 22, massTop, 7, 7, '#4f46e5');
+        drawDamper(ctx1DOF, centerX + 22, ceilY, centerX + 22, massTop, '#f59e0b');
+      } else {
+        drawSpring(ctx1DOF, centerX, ceilY, centerX, massTop, 7, 8, '#4f46e5');
+      }
+
+      // Mass block
+      const blockW = 76;
+      const blockH = 44;
+      ctx1DOF.fillStyle = '#4f46e5';
+      ctx1DOF.beginPath();
+      ctx1DOF.roundRect(centerX - blockW / 2, massY - blockH / 2, blockW, blockH, 8);
+      ctx1DOF.fill();
+
+      ctx1DOF.fillStyle = '#ffffff';
+      ctx1DOF.font = '600 12px Inter, sans-serif';
+      ctx1DOF.textAlign = 'center';
+      ctx1DOF.textBaseline = 'middle';
+      ctx1DOF.fillText(`m = ${state1DOF.m}kg`, centerX, massY);
+
+      // Divider line
+      ctx1DOF.strokeStyle = isDark ? '#1e293b' : '#e2e8f0';
+      ctx1DOF.lineWidth = 1.5;
+      ctx1DOF.beginPath();
+      ctx1DOF.moveTo(splitX, 12);
+      ctx1DOF.lineTo(splitX, H - 12);
+      ctx1DOF.stroke();
+
+      // --- RIGHT: TIME DOMAIN GRAPH x(t) ---
+      const gLeft = splitX + 36;
+      const gRight = W - 20;
+      const gW = gRight - gLeft;
+      const timeWindow = 5.0; // seconds displayed
+
+      // Y-axis & grid
+      ctx1DOF.strokeStyle = isDark ? '#334155' : '#cbd5e1';
+      ctx1DOF.lineWidth = 1.5;
+      ctx1DOF.beginPath();
+      ctx1DOF.moveTo(gLeft, 24);
+      ctx1DOF.lineTo(gLeft, H - 24);
+      ctx1DOF.stroke();
+
+      ctx1DOF.fillStyle = isDark ? '#94a3b8' : '#64748b';
+      ctx1DOF.font = '500 10px JetBrains Mono, monospace';
+      ctx1DOF.textAlign = 'right';
+      ctx1DOF.fillText('+1.0m', gLeft - 6, eqY - maxAmpPx);
+      ctx1DOF.fillText('0', gLeft - 6, eqY);
+      ctx1DOF.fillText('-1.0m', gLeft - 6, eqY + maxAmpPx);
+
+      // Time ticks
+      ctx1DOF.textAlign = 'center';
+      const startTime = Math.max(0, state1DOF.t - timeWindow * 0.75);
+      for (let sec = Math.ceil(startTime); sec <= startTime + timeWindow; sec++) {
+        const px = gLeft + ((sec - startTime) / timeWindow) * gW;
+        if (px >= gLeft && px <= gRight) {
+          ctx1DOF.fillText(`${sec}s`, px, H - 10);
+        }
+      }
+
+      // Draw Exponential Decay Envelope if 0 < zeta < 1
+      if (state1DOF.zeta > 0 && state1DOF.zeta < 1) {
+        const amp = state1DOF.x0 / Math.sqrt(1 - state1DOF.zeta * state1DOF.zeta);
+        ctx1DOF.strokeStyle = '#f43f5e';
+        ctx1DOF.lineWidth = 1.3;
+        ctx1DOF.setLineDash([5, 4]);
+
+        // Upper envelope
+        ctx1DOF.beginPath();
+        for (let i = 0; i <= 120; i++) {
+          const frac = i / 120;
+          const ti = startTime + frac * timeWindow;
+          const env = amp * Math.exp(-state1DOF.zeta * state1DOF.wn * ti);
+          const px = gLeft + frac * gW;
+          const py = eqY - env * maxAmpPx;
+          if (i === 0) ctx1DOF.moveTo(px, py);
+          else ctx1DOF.lineTo(px, py);
+        }
+        ctx1DOF.stroke();
+
+        // Lower envelope
+        ctx1DOF.beginPath();
+        for (let i = 0; i <= 120; i++) {
+          const frac = i / 120;
+          const ti = startTime + frac * timeWindow;
+          const env = -amp * Math.exp(-state1DOF.zeta * state1DOF.wn * ti);
+          const px = gLeft + frac * gW;
+          const py = eqY - env * maxAmpPx;
+          if (i === 0) ctx1DOF.moveTo(px, py);
+          else ctx1DOF.lineTo(px, py);
+        }
+        ctx1DOF.stroke();
+        ctx1DOF.setLineDash([]);
+      }
+
+      // Draw x(t) curve up to current t
+      ctx1DOF.strokeStyle = '#4f46e5';
+      ctx1DOF.lineWidth = 2.5;
+      ctx1DOF.beginPath();
+      const endDrawTime = Math.min(startTime + timeWindow, state1DOF.t);
+      const steps = 240;
+      for (let i = 0; i <= steps; i++) {
+        const ti = startTime + (i / steps) * (endDrawTime - startTime);
+        const xi = eval1DOF(ti);
+        const px = gLeft + ((ti - startTime) / timeWindow) * gW;
+        const py = eqY - xi * maxAmpPx;
+        if (i === 0) ctx1DOF.moveTo(px, py);
+        else ctx1DOF.lineTo(px, py);
+      }
+      ctx1DOF.stroke();
+
+      // Current tracer dot synchronized with mass block
+      const curPx = gLeft + ((state1DOF.t - startTime) / timeWindow) * gW;
+      ctx1DOF.strokeStyle = isDark ? 'rgba(99,102,241,0.35)' : 'rgba(79,70,229,0.3)';
+      ctx1DOF.setLineDash([3, 3]);
+      ctx1DOF.beginPath();
+      ctx1DOF.moveTo(centerX + blockW / 2, massY);
+      ctx1DOF.lineTo(curPx, massY);
+      ctx1DOF.stroke();
+      ctx1DOF.setLineDash([]);
+
+      ctx1DOF.fillStyle = '#4f46e5';
+      ctx1DOF.beginPath();
+      ctx1DOF.arc(curPx, massY, 5, 0, Math.PI * 2);
+      ctx1DOF.fill();
+
+      ctx1DOF.restore();
+    }
+
+    // =========================================================================
+    // 3. 2DOF SIMULATION & MODE SHAPES ENGINE
+    // =========================================================================
+    const state2DOF = {
+      m1: 2,
+      m2: 2,
+      k1: 200,
+      k2: 200,
+      k3: 200,
+      mode: 'mode1', // 'mode1', 'mode2', 'combined'
+      t: 0,
+      playing: true,
+      wn1: 10,
+      wn2: 17.32,
+      ratio1: 1.0,
+      ratio2: -1.0
+    };
+
+    const m1_2Slider = document.getElementById('m1_2dof');
+    const m2_2Slider = document.getElementById('m2_2dof');
+    const k1_2Slider = document.getElementById('k1_2dof');
+    const k2_2Slider = document.getElementById('k2_2dof');
+    const k3_2Slider = document.getElementById('k3_2dof');
+
+    function update2DOFParams() {
+      state2DOF.m1 = parseFloat(m1_2Slider.value);
+      state2DOF.m2 = parseFloat(m2_2Slider.value);
+      state2DOF.k1 = parseFloat(k1_2Slider.value);
+      state2DOF.k2 = parseFloat(k2_2Slider.value);
+      state2DOF.k3 = parseFloat(k3_2Slider.value);
+
+      document.getElementById('m1_2dofVal').textContent = state2DOF.m1.toFixed(1);
+      document.getElementById('m2_2dofVal').textContent = state2DOF.m2.toFixed(1);
+      document.getElementById('k1_2dofVal').textContent = state2DOF.k1.toFixed(0);
+      document.getElementById('k2_2dofVal').textContent = state2DOF.k2.toFixed(0);
+      document.getElementById('k3_2dofVal').textContent = state2DOF.k3.toFixed(0);
+
+      const { m1, m2, k1, k2, k3 } = state2DOF;
+      const K11 = k1 + k2;
+      const K22 = k2 + k3;
+
+      // Characteristic equation: m1*m2*w^4 - (m1*K22 + m2*K11)*w^2 + (K11*K22 - k2^2) = 0
+      const A = m1 * m2;
+      const B = -(m1 * K22 + m2 * K11);
+      const C = K11 * K22 - k2 * k2;
+      const disc = Math.max(0, B * B - 4 * A * C);
+
+      const w1Sq = (-B - Math.sqrt(disc)) / (2 * A);
+      const w2Sq = (-B + Math.sqrt(disc)) / (2 * A);
+
+      const wn1 = Math.sqrt(Math.max(0, w1Sq));
+      const wn2 = Math.sqrt(Math.max(0, w2Sq));
+
+      // Mode shape ratio X2 / X1 = (K11 - m1 * w^2) / k2
+      const ratio1 = (K11 - m1 * w1Sq) / k2;
+      const ratio2 = (K11 - m1 * w2Sq) / k2;
+
+      state2DOF.wn1 = wn1;
+      state2DOF.wn2 = wn2;
+      state2DOF.ratio1 = ratio1;
+      state2DOF.ratio2 = ratio2;
+
+      document.getElementById('outWn1').textContent = wn1.toFixed(2);
+      document.getElementById('outWn2').textContent = wn2.toFixed(2);
+      document.getElementById('outRatio1').textContent = (ratio1 >= 0 ? '+' : '') + ratio1.toFixed(3);
+      document.getElementById('outRatio2').textContent = (ratio2 >= 0 ? '+' : '') + ratio2.toFixed(3);
+
+      document.getElementById('matrixReadout').innerHTML =
+        `[M] = diag(${m1.toFixed(1)}, ${m2.toFixed(1)}) kg<br>` +
+        `[K] = [[${K11}, -${k2}], [-${k2}, ${K22}]] N/m`;
+
+      const insight2 = document.getElementById('insight2DOF');
+      if (state2DOF.mode === 'mode1') {
+        insight2.innerHTML = `<strong>1st Principal Mode (&omega;<sub>n1</sub> = ${wn1.toFixed(2)} rad/s):</strong> Both masses move <strong>in-phase</strong> (same direction at the same time) with amplitude ratio <span class="font-mono">X<sub>2</sub>/X<sub>1</sub> = +${ratio1.toFixed(2)}</span>. Because the coupling spring <span class="math-var">k<sub>2</sub></span> stretches very little, this lower frequency requires less restoring energy.`;
+      } else if (state2DOF.mode === 'mode2') {
+        insight2.innerHTML = `<strong>2nd Principal Mode (&omega;<sub>n2</sub> = ${wn2.toFixed(2)} rad/s):</strong> Both masses move <strong>out-of-phase</strong> (opposite directions) with amplitude ratio <span class="font-mono">X<sub>2</sub>/X<sub>1</sub> = ${ratio2.toFixed(2)}</span>. Here the middle spring <span class="math-var">k<sub>2</sub></span> is heavily compressed and stretched, producing a higher natural frequency.`;
+      } else {
+        insight2.innerHTML = `<strong>Combined Free Motion (Superposition):</strong> When disturbed arbitrarily, the motion is a sum of Mode 1 and Mode 2. Notice how vibrational energy transfers back and forth between <span class="math-var">m<sub>1</sub></span> and <span class="math-var">m<sub>2</sub></span> (the <strong>beating phenomenon</strong>)—the exact principle behind a <strong>Dynamic Vibration Absorber</strong>!`;
+      }
+    }
+
+    function set2DOFMode(mode) {
+      state2DOF.mode = mode;
+      state2DOF.t = 0;
+      document.querySelectorAll('.mode2dof-btn').forEach(btn => {
+        btn.className = 'mode2dof-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition';
+      });
+      const activeId = mode === 'mode1' ? 'btnMode1' : mode === 'mode2' ? 'btnMode2' : 'btnModeCombined';
+      document.getElementById(activeId).className = 'mode2dof-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-sm transition';
+      update2DOFParams();
+    }
+
+    function apply2DOFPreset(type) {
+      if (type === 'symmetric') {
+        m1_2Slider.value = 2; m2_2Slider.value = 2;
+        k1_2Slider.value = 200; k2_2Slider.value = 200; k3_2Slider.value = 200;
+      } else {
+        // Vibration absorber style: large primary mass, small secondary absorber mass
+        m1_2Slider.value = 8; m2_2Slider.value = 1;
+        k1_2Slider.value = 400; k2_2Slider.value = 50; k3_2Slider.value = 0;
+        set2DOFMode('combined');
+      }
+      state2DOF.t = 0;
+      update2DOFParams();
+    }
+
+    function toggle2DOFPlay() {
+      state2DOF.playing = !state2DOF.playing;
+      document.getElementById('playPause2DOFText').textContent = state2DOF.playing ? 'Pause' : 'Play';
+    }
+
+    function eval2DOF(t) {
+      const { mode, wn1, wn2, ratio1, ratio2 } = state2DOF;
+      // Normalize amplitudes so visuals stay cleanly bounded
+      if (mode === 'mode1') {
+        const scale = 1 / Math.max(1, Math.abs(ratio1));
+        const x1 = scale * Math.cos(wn1 * t);
+        const x2 = scale * ratio1 * Math.cos(wn1 * t);
+        return { x1, x2 };
+      } else if (mode === 'mode2') {
+        const scale = 1 / Math.max(1, Math.abs(ratio2));
+        const x1 = scale * Math.cos(wn2 * t);
+        const x2 = scale * ratio2 * Math.cos(wn2 * t);
+        return { x1, x2 };
+      } else {
+        // Initial condition x1(0) = 1, x2(0) = 0 -> superposition of modes 1 and 2
+        const denom = ratio1 - ratio2;
+        const a1 = -ratio2 / denom;
+        const a2 = ratio1 / denom;
+        const x1 = a1 * Math.cos(wn1 * t) + a2 * Math.cos(wn2 * t);
+        const x2 = a1 * ratio1 * Math.cos(wn1 * t) + a2 * ratio2 * Math.cos(wn2 * t);
+        return { x1, x2 };
+      }
+    }
+
+    [m1_2Slider, m2_2Slider, k1_2Slider, k2_2Slider, k3_2Slider].forEach(el => {
+      el.addEventListener('input', update2DOFParams);
+    });
+
+    const canvas2DOF = document.getElementById('canvas2DOF');
+    const ctx2DOF = canvas2DOF.getContext('2d');
+
+    function render2DOF() {
+      const rect = canvas2DOF.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      if (canvas2DOF.width !== Math.floor(rect.width * dpr) || canvas2DOF.height !== Math.floor(rect.height * dpr)) {
+        canvas2DOF.width = Math.floor(rect.width * dpr);
+        canvas2DOF.height = Math.floor(rect.height * dpr);
+      }
+      ctx2DOF.save();
+      ctx2DOF.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      const isDark = htmlEl.classList.contains('dark');
+      ctx2DOF.clearRect(0, 0, W, H);
+
+      // Top 38%: Horizontal 2-Mass 3-Spring Schematic
+      const schemH = H * 0.38;
+      const trackY = schemH * 0.52;
+      const leftWallX = 36;
+      const rightWallX = W - 36;
+      const span = rightWallX - leftWallX;
+
+      const eq1X = leftWallX + span * 0.34;
+      const eq2X = leftWallX + span * 0.66;
+      const dispScale = span * 0.085;
+
+      const { x1, x2 } = eval2DOF(state2DOF.t);
+      const m1X = eq1X + x1 * dispScale;
+      const m2X = eq2X + x2 * dispScale;
+
+      // Walls
+      ctx2DOF.fillStyle = isDark ? '#334155' : '#cbd5e1';
+      ctx2DOF.fillRect(leftWallX - 8, trackY - 32, 8, 64);
+      if (state2DOF.k3 > 0) {
+        ctx2DOF.fillRect(rightWallX, trackY - 32, 8, 64);
+      }
+
+      // Equilibrium dashed markers
+      ctx2DOF.strokeStyle = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(100,116,139,0.3)';
+      ctx2DOF.setLineDash([3, 3]);
+      ctx2DOF.beginPath();
+      ctx2DOF.moveTo(eq1X, trackY - 35); ctx2DOF.lineTo(eq1X, trackY + 35);
+      ctx2DOF.moveTo(eq2X, trackY - 35); ctx2DOF.lineTo(eq2X, trackY + 35);
+      ctx2DOF.stroke();
+      ctx2DOF.setLineDash([]);
+
+      // Springs k1, k2, k3
+      const boxW = 56;
+      const boxH = 40;
+      drawSpring(ctx2DOF, leftWallX, trackY, m1X - boxW / 2, trackY, 6, 7, '#6366f1');
+      drawSpring(ctx2DOF, m1X + boxW / 2, trackY, m2X - boxW / 2, trackY, 6, 7, '#f59e0b');
+      if (state2DOF.k3 > 0) {
+        drawSpring(ctx2DOF, m2X + boxW / 2, trackY, rightWallX, trackY, 6, 7, '#10b981');
+      }
+
+      // Mass 1
+      ctx2DOF.fillStyle = '#4f46e5';
+      ctx2DOF.beginPath();
+      ctx2DOF.roundRect(m1X - boxW / 2, trackY - boxH / 2, boxW, boxH, 8);
+      ctx2DOF.fill();
+      ctx2DOF.fillStyle = '#ffffff';
+      ctx2DOF.font = '600 12px Inter, sans-serif';
+      ctx2DOF.textAlign = 'center';
+      ctx2DOF.textBaseline = 'middle';
+      ctx2DOF.fillText(`m₁`, m1X, trackY);
+
+      // Mass 2
+      ctx2DOF.fillStyle = '#10b981';
+      ctx2DOF.beginPath();
+      ctx2DOF.roundRect(m2X - boxW / 2, trackY - boxH / 2, boxW, boxH, 8);
+      ctx2DOF.fill();
+      ctx2DOF.fillStyle = '#ffffff';
+      ctx2DOF.fillText(`m₂`, m2X, trackY);
+
+      // Divider
+      ctx2DOF.strokeStyle = isDark ? '#1e293b' : '#e2e8f0';
+      ctx2DOF.lineWidth = 1.5;
+      ctx2DOF.beginPath();
+      ctx2DOF.moveTo(16, schemH);
+      ctx2DOF.lineTo(W - 16, schemH);
+      ctx2DOF.stroke();
+
+      // --- BOTTOM 62%: DUAL-TRACE TIME GRAPH ---
+      const gTop = schemH + 18;
+      const gBot = H - 24;
+      const gMidY = (gTop + gBot) * 0.5;
+      const gAmp = (gBot - gTop) * 0.38;
+      const gLeft = 46;
+      const gRight = W - 20;
+      const gW = gRight - gLeft;
+      const timeWindow = 6.0;
+
+      // Zero axis
+      ctx2DOF.strokeStyle = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.25)';
+      ctx2DOF.setLineDash([4, 4]);
+      ctx2DOF.beginPath();
+      ctx2DOF.moveTo(gLeft, gMidY);
+      ctx2DOF.lineTo(gRight, gMidY);
+      ctx2DOF.stroke();
+      ctx2DOF.setLineDash([]);
+
+      // Y axis
+      ctx2DOF.strokeStyle = isDark ? '#334155' : '#cbd5e1';
+      ctx2DOF.beginPath();
+      ctx2DOF.moveTo(gLeft, gTop);
+      ctx2DOF.lineTo(gLeft, gBot);
+      ctx2DOF.stroke();
+
+      ctx2DOF.fillStyle = isDark ? '#94a3b8' : '#64748b';
+      ctx2DOF.font = '500 10px JetBrains Mono, monospace';
+      ctx2DOF.textAlign = 'right';
+      ctx2DOF.fillText('+1', gLeft - 6, gMidY - gAmp);
+      ctx2DOF.fillText('0', gLeft - 6, gMidY);
+      ctx2DOF.fillText('-1', gLeft - 6, gMidY + gAmp);
+
+      const startTime = Math.max(0, state2DOF.t - timeWindow * 0.8);
+      const endTime = Math.min(startTime + timeWindow, state2DOF.t);
+      const steps = 260;
+
+      // Draw x1(t) in Indigo
+      ctx2DOF.strokeStyle = '#4f46e5';
+      ctx2DOF.lineWidth = 2.3;
+      ctx2DOF.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const ti = startTime + (i / steps) * (endTime - startTime);
+        const val = eval2DOF(ti).x1;
+        const px = gLeft + ((ti - startTime) / timeWindow) * gW;
+        const py = gMidY - val * gAmp;
+        if (i === 0) ctx2DOF.moveTo(px, py);
+        else ctx2DOF.lineTo(px, py);
+      }
+      ctx2DOF.stroke();
+
+      // Draw x2(t) in Emerald
+      ctx2DOF.strokeStyle = '#10b981';
+      ctx2DOF.lineWidth = 2.3;
+      ctx2DOF.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const ti = startTime + (i / steps) * (endTime - startTime);
+        const val = eval2DOF(ti).x2;
+        const px = gLeft + ((ti - startTime) / timeWindow) * gW;
+        const py = gMidY - val * gAmp;
+        if (i === 0) ctx2DOF.moveTo(px, py);
+        else ctx2DOF.lineTo(px, py);
+      }
+      ctx2DOF.stroke();
+
+      // Current tracer dots
+      const curPx = gLeft + ((state2DOF.t - startTime) / timeWindow) * gW;
+      ctx2DOF.fillStyle = '#4f46e5';
+      ctx2DOF.beginPath();
+      ctx2DOF.arc(curPx, gMidY - x1 * gAmp, 4.5, 0, Math.PI * 2);
+      ctx2DOF.fill();
+
+      ctx2DOF.fillStyle = '#10b981';
+      ctx2DOF.beginPath();
+      ctx2DOF.arc(curPx, gMidY - x2 * gAmp, 4.5, 0, Math.PI * 2);
+      ctx2DOF.fill();
+
+      ctx2DOF.restore();
+    }
+
+    // =========================================================================
+    // 4. EQUIVALENT SYSTEM CALCULATOR
+    // =========================================================================
+    function updateEquivalentCalc() {
+      const a = parseFloat(document.getElementById('eq_a').value) || 0;
+      const b = parseFloat(document.getElementById('eq_b').value) || 0.001;
+      const m = parseFloat(document.getElementById('eq_m').value) || 0;
+      const Io = parseFloat(document.getElementById('eq_Io').value) || 0;
+      const k = parseFloat(document.getElementById('eq_k').value) || 0;
+      const c = parseFloat(document.getElementById('eq_c').value) || 0;
+
+      const ratioSq = Math.pow(a / b, 2);
+      document.getElementById('eq_ratio').textContent = ratioSq.toFixed(2);
+      document.getElementById('res_meq').textContent = (m * ratioSq).toFixed(2);
+      document.getElementById('res_Ieq').textContent = (Io / (b * b)).toFixed(2);
+      document.getElementById('res_keq').textContent = (k * ratioSq).toFixed(1);
+      document.getElementById('res_ceq').textContent = (c * ratioSq).toFixed(1);
+    }
+
+    ['eq_a', 'eq_b', 'eq_m', 'eq_Io', 'eq_k', 'eq_c'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateEquivalentCalc);
+    });
+
+    // =========================================================================
+    // 5. MAIN 60FPS ANIMATION LOOP
+    // =========================================================================
+    let lastTimestamp = null;
+
+    function animate(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.05, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      // Slow simulation clock slightly (0.65x) so high frequencies remain easy to observe visually
+      if (state1DOF.playing && !document.getElementById('tab-lab1dof').classList.contains('hidden')) {
+        state1DOF.t += dt * 0.65;
+      }
+      if (state2DOF.playing && !document.getElementById('tab-lab2dof').classList.contains('hidden')) {
+        state2DOF.t += dt * 0.65;
+      }
+
+      if (!document.getElementById('tab-lab1dof').classList.contains('hidden')) {
+        render1DOF();
+      }
+      if (!document.getElementById('tab-lab2dof').classList.contains('hidden')) {
+        render2DOF();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    window.onload = function () {
+      update1DOFParams();
+      update2DOFParams();
+      updateEquivalentCalc();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
+```
