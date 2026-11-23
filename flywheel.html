@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Topic 7: Flywheel Interactive Lab & Problem Solver</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    input[type="range"] {
+      accent-color: #2563eb;
+    }
+    /* Custom scrollbar for tables */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white shadow-lg border-b border-slate-800 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-inner shrink-0">
+          <svg class="w-6 h-6 text-white animate-spin" style="animation-duration: 10s;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" stroke-opacity="0.4" />
+            <circle cx="12" cy="12" r="3" />
+            <path stroke-linecap="round" d="M12 3v6M12 15v6M3 12h6M15 12h6" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">SEMM2223 • Topic 7</span>
+            <span class="text-xs text-slate-400 hidden sm:inline">Mechanics of Machines & Vibration</span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Flywheel & Turning Moment Diagram Lab</h1>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex bg-slate-800/90 p-1 rounded-xl border border-slate-700/80 self-start md:self-auto w-full md:w-auto overflow-x-auto">
+        <button id="tab-sim" onclick="switchTab('sim')" class="flex-1 md:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-blue-600 text-white shadow-sm whitespace-nowrap">
+          1. Visual Physics Lab
+        </button>
+        <button id="tab-solver" onclick="switchTab('solver')" class="flex-1 md:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white whitespace-nowrap">
+          2. Diagram Builder & Solver
+        </button>
+        <button id="tab-formulas" onclick="switchTab('formulas')" class="flex-1 md:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white whitespace-nowrap">
+          3. Formulas & Exam Traps
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 1: VISUAL PHYSICS SIMULATOR                                    -->
+    <!-- ===================================================================== -->
+    <section id="view-sim" class="space-y-6">
+      <!-- Top Control Banner -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">How a Flywheel Smooths Energy & Speed</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Scrub the cycle or play the simulation to watch how excess torque accelerates the flywheel (<span class="text-emerald-600 font-semibold">+Area</span>) and deficit torque slows it down (<span class="text-rose-600 font-semibold">−Area</span>).
+            </p>
+          </div>
+
+          <!-- Machine Type Toggle -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">Machine Mode:</span>
+            <button id="sim-mode-1" onclick="setSimMode(1)" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-indigo-600 text-white border-indigo-600 shadow-sm">
+              Type 1: 4-Stroke IC Engine
+            </button>
+            <button id="sim-mode-2" onclick="setSimMode(2)" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
+              Type 2: Punching Machine
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Visual Lab Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Live Mechanical Animation + Sliders (4 cols) -->
+        <div class="lg:col-span-4 space-y-5">
+          <!-- Canvas Mechanical Rig -->
+          <div class="bg-slate-900 rounded-2xl shadow-md border border-slate-800 p-4 text-white flex flex-col">
+            <div class="flex items-center justify-between mb-2">
+              <span id="sim-rig-title" class="text-xs font-bold uppercase tracking-wider text-blue-400">Single-Cylinder 4-Stroke Engine</span>
+              <span id="sim-stroke-badge" class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                Power Stroke (+a)
+              </span>
+            </div>
+
+            <div class="relative w-full aspect-[4/3] bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+              <canvas id="mechCanvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Playback & Scrubber Controls -->
+            <div class="mt-4 space-y-3">
+              <div class="flex items-center gap-2">
+                <button id="sim-play-btn" onclick="toggleSimPlay()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition shadow">
+                  <span id="sim-play-icon">❚❚</span>
+                  <span id="sim-play-text">Pause</span>
+                </button>
+                <button onclick="jumpToExtreme('max')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 text-xs font-semibold transition" title="Jump to Maximum Energy / Speed">
+                  Jump E<sub>max</sub>
+                </button>
+                <button onclick="jumpToExtreme('min')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 text-xs font-semibold transition" title="Jump to Minimum Energy / Speed">
+                  Jump E<sub>min</sub>
+                </button>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs text-slate-400 mb-1 font-mono">
+                  <span>Cycle Position: <strong id="sim-angle-label" class="text-white">0.00π rad (0°)</strong></span>
+                  <span id="sim-cycle-max-label">Cycle: 4π</span>
+                </div>
+                <input id="sim-scrubber" type="range" min="0" max="1000" value="0" oninput="onScrubSim(this.value)" class="w-full h-2 bg-slate-700 rounded-lg cursor-pointer" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Inertia & Speed Sliders -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+              Flywheel Parameters (Try Adjusting!)
+            </h3>
+
+            <div>
+              <div class="flex justify-between text-xs sm:text-sm mb-1">
+                <label for="sim-inertia" class="font-medium text-slate-700">Moment of Inertia (<span class="font-mono">I</span>)</label>
+                <span class="font-mono font-bold text-blue-600"><span id="sim-inertia-val">15</span> kg·m²</span>
+              </div>
+              <input id="sim-inertia" type="range" min="2" max="80" step="1" value="15" oninput="updateSimParams()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+              <p class="text-[11px] text-slate-500 mt-1">Notice: Increasing <span class="font-mono">I</span> does NOT change <span class="font-mono">ΔE</span>, but dramatically shrinks speed fluctuation <span class="font-mono">α</span>!</p>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs sm:text-sm mb-1">
+                <label for="sim-rpm" class="font-medium text-slate-700">Mean Speed (<span class="font-mono">N<sub>mean</sub></span>)</label>
+                <span class="font-mono font-bold text-indigo-600"><span id="sim-rpm-val">300</span> rpm</span>
+              </div>
+              <input id="sim-rpm" type="range" min="100" max="900" step="25" value="300" oninput="updateSimParams()" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" />
+            </div>
+
+            <!-- Live Readout Cards -->
+            <div class="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="text-[11px] text-slate-500 font-medium">Instantaneous Speed</div>
+                <div id="sim-inst-rpm" class="text-sm sm:text-base font-mono font-bold text-slate-900">300.0 rpm</div>
+                <div id="sim-inst-omega" class="text-[11px] font-mono text-slate-500">31.42 rad/s</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="text-[11px] text-slate-500 font-medium">Speed Fluctuation (α)</div>
+                <div id="sim-alpha-val" class="text-sm sm:text-base font-mono font-bold text-blue-600">4.25%</div>
+                <div id="sim-delta-e-val" class="text-[11px] font-mono text-slate-500">ΔE = 628.3 J</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                <div class="text-[11px] text-emerald-700 font-medium">Max Speed (at E<sub>max</sub>)</div>
+                <div id="sim-max-rpm" class="text-xs sm:text-sm font-mono font-bold text-emerald-800">306.4 rpm</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200">
+                <div class="text-[11px] text-rose-700 font-medium">Min Speed (at E<sub>min</sub>)</div>
+                <div id="sim-min-rpm" class="text-xs sm:text-sm font-mono font-bold text-rose-800">293.6 rpm</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Synced Turning Moment Diagram & Energy/Speed Graph (8 cols) -->
+        <div class="lg:col-span-8 space-y-5">
+          <!-- Turning Moment Diagram Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-slate-900">Turning Moment Diagram (T vs θ)</h3>
+                <p id="sim-tmd-subtitle" class="text-xs text-slate-500">Type 1: Variable Engine Torque T<sub>input</sub> vs Constant Load T<sub>mean</sub></p>
+              </div>
+              <div class="flex items-center gap-3 text-xs font-medium">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-600 inline-block"></span> Energy Absorbed (+)</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500/30 border border-rose-600 inline-block"></span> Energy Released (−)</span>
+              </div>
+            </div>
+
+            <div class="relative w-full h-64 sm:h-72 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="simTmdCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            </div>
+
+            <!-- Energy Equation Strip -->
+            <div id="sim-energy-strip" class="mt-3 p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-xs overflow-x-auto whitespace-nowrap flex items-center gap-3">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Cumulative Energy & Speed Curve Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-slate-900">Flywheel Kinetic Energy ΔU(θ) & Speed ω(θ)</h3>
+                <p class="text-xs text-slate-500">Notice that E<sub>max</sub> and E<sub>min</sub> ALWAYS occur at intersection points where T = T<sub>mean</sub>!</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs font-mono">
+                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">● E<sub>max</sub> (ω<sub>max</sub>)</span>
+                <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-semibold">● E<sub>min</sub> (ω<sub>min</sub>)</span>
+              </div>
+            </div>
+
+            <div class="relative w-full h-56 sm:h-64 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="simEnergyCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 2: CUSTOM TURNING MOMENT DIAGRAM BUILDER & EXAM PROBLEM SOLVER -->
+    <!-- ===================================================================== -->
+    <section id="view-solver" class="hidden space-y-6">
+      
+      <!-- Top Preset & Quick Setup Bar -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">Turning Moment Diagram Builder & Problem Solver</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Load any example/exercise from your lecture notes or build your own piecewise graph to get the complete 6-step solution.
+            </p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <label for="preset-select" class="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">Load Slide Example:</label>
+            <select id="preset-select" onchange="loadPreset(this.value)" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="slide24">Slide 24: Type 1 Trapezoidal Engine (300 rpm, I=180)</option>
+              <option value="slide29">Slide 29: Type 1 Double-Acting Steam Engine (100 rpm)</option>
+              <option value="slide30">Slide 30: Type 2 Punching Machine (Unknown Idle Time t)</option>
+              <option value="slide34">Slide 34: Type 2 Dual-Peak Punching Machine (385–315 rpm)</option>
+              <option value="slide35">Slide 35 (Q1): Punching Machine (600 rpm, 2% fluctuation)</option>
+              <option value="slide36">Slide 36 (Q2): Power Source Step & Ramp (300 rpm, I=90)</option>
+              <option value="slide38">Slide 38 (Ex 1): Engine Step & Ramp (495–505 rpm, ρ=8500)</option>
+              <option value="slide39">Slide 39 (Ex 2): Rolling Machine (Unknown Δt, T_mean=25 Nm)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Solver Workspace Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Input Panel (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          
+          <!-- Step 1 & 2: System Configuration -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 class="text-sm font-bold text-slate-900">1. System & Axis Configuration</h3>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">Steps 1–3</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">System Type</label>
+                <select id="sol-type" onchange="solveCustomProblem()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium bg-white">
+                  <option value="1">Type 1: Variable Input → Constant Load</option>
+                  <option value="2">Type 2: Constant Input → Variable Load</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Horizontal Axis (X-Axis)</label>
+                <select id="sol-xaxis" onchange="onXAxisUnitChange()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium bg-white">
+                  <option value="pi">Crank Angle θ (multiples of π)</option>
+                  <option value="rad">Crank Angle θ (radians)</option>
+                  <option value="sec">Time t (seconds → auto θ = ωt)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Unknown Mode Selector -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label class="text-xs font-bold text-slate-700">Conservation of Energy Mode:</label>
+                <select id="sol-energy-mode" onchange="onEnergyModeChange()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white text-slate-800">
+                  <option value="find_tmean">Find T_mean from Diagram Area</option>
+                  <option value="find_idle">T_mean is Given → Solve Unknown Idle Duration (Δt / Δθ)</option>
+                </select>
+              </div>
+
+              <div id="sol-given-tmean-box" class="hidden grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Given Constant Torque T<sub>mean</sub> (N·m)</label>
+                  <input id="sol-given-tmean" type="number" step="any" value="50" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-sm bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Idle Torque Level T<sub>idle</sub> (N·m)</label>
+                  <input id="sol-idle-torque" type="number" step="any" value="0" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-mono text-sm bg-white" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Speed & Inertia / Dimension Inputs -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Speed Input Mode</label>
+                <select id="sol-speed-mode" onchange="onSpeedModeChange()" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-medium bg-white">
+                  <option value="mean">Mean Speed N (rpm)</option>
+                  <option value="minmax">Max & Min Speed (rpm)</option>
+                </select>
+              </div>
+
+              <div id="sol-rpm-single-box">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Mean Speed N<sub>mean</sub> (rpm)</label>
+                <input id="sol-rpm" type="number" step="any" value="300" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-sm" />
+              </div>
+
+              <div id="sol-rpm-minmax-box" class="hidden col-span-2 grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">N<sub>max</sub> (rpm)</label>
+                  <input id="sol-nmax" type="number" step="any" value="385" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">N<sub>min</sub> (rpm)</label>
+                  <input id="sol-nmin" type="number" step="any" value="315" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Solve For:</label>
+                <select id="sol-target-mode" onchange="onTargetModeChange()" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-medium bg-white">
+                  <option value="alpha">Given I → Find α, N<sub>max</sub>, N<sub>min</sub></option>
+                  <option value="inertia">Given α → Find Required I</option>
+                  <option value="both_minmax">N<sub>max</sub> & N<sub>min</sub> Given → Find I</option>
+                </select>
+              </div>
+
+              <div id="sol-input-inertia-box">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Total Inertia I (kg·m²)</label>
+                <input id="sol-inertia" type="number" step="any" value="180" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-sm" />
+              </div>
+
+              <div id="sol-input-alpha-box" class="hidden">
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Coeff. Fluctuation α (%)</label>
+                <input id="sol-alpha-pct" type="number" step="any" value="1.5" oninput="solveCustomProblem()" class="w-full px-3 py-1.5 rounded-xl border border-slate-300 font-mono text-sm" />
+                <span class="text-[10px] text-slate-400">Note: ±0.75% = 1.5% total α</span>
+              </div>
+            </div>
+
+            <!-- Optional Flywheel Dimensions / Mass Calculator -->
+            <details class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <summary class="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                Optional: Flywheel Mass & Disc Dimensions (Slides 29, 34, 38, 39)
+              </summary>
+              <div class="mt-3 grid grid-cols-2 gap-2.5 text-xs">
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-0.5">Motor/Other Inertia I<sub>other</sub> (kg·m²)</label>
+                  <input id="sol-i-other" type="number" step="any" value="0" oninput="solveCustomProblem()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-0.5">Radius of Gyration k (m) [if rim]</label>
+                  <input id="sol-gyration" type="number" step="any" placeholder="e.g. 1.75" oninput="solveCustomProblem()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-0.5">Material Density ρ (kg/m³)</label>
+                  <input id="sol-density" type="number" step="any" value="7250" oninput="solveCustomProblem()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-600 mb-0.5">Disc Ratio: Radius / Thickness (r/t)</label>
+                  <input id="sol-rt-ratio" type="number" step="any" value="1" oninput="solveCustomProblem()" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono bg-white" />
+                  <span class="text-[10px] text-slate-400">Note: d = 2t ⇒ r = t ⇒ r/t = 1</span>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Piecewise Segment Editor -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">2. Piecewise Torque Segments (1 Cycle)</h3>
+                <p id="seg-table-hint" class="text-xs text-slate-500">Define each linear/flat segment across one complete cycle.</p>
+              </div>
+              <button onclick="addSegmentRow()" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition">
+                + Add Segment
+              </button>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
+                    <th class="py-2 px-2.5">#</th>
+                    <th id="th-x1" class="py-2 px-2">θ<sub>start</sub> (π)</th>
+                    <th id="th-x2" class="py-2 px-2">θ<sub>end</sub> (π)</th>
+                    <th class="py-2 px-2">T<sub>start</sub> (Nm)</th>
+                    <th class="py-2 px-2">T<sub>end</sub> (Nm)</th>
+                    <th class="py-2 px-2 text-center">Del</th>
+                  </tr>
+                </thead>
+                <tbody id="segments-tbody" class="divide-y divide-slate-100 font-mono">
+                  <!-- Rows populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+              <span>Tip: Vertical steps (like Slide 36) are handled automatically when T<sub>start</sub> ≠ previous T<sub>end</sub>.</span>
+              <button onclick="clearSegments()" class="text-rose-600 hover:underline font-semibold">Reset Segments</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Output Panel: Interactive Graph + 6-Step Solution (7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          
+          <!-- Superimposed Turning Moment Diagram -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-slate-900">Superimposed Turning Moment Diagram (Step 5)</h3>
+                <p id="sol-chart-subtitle" class="text-xs text-slate-500">Hover anywhere on the chart to inspect exact Torque, Cumulative Energy, and Speed.</p>
+              </div>
+              <div class="flex items-center gap-3 text-xs font-medium">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-500/30 border border-emerald-600"></span> +Energy</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-rose-500/30 border border-rose-600"></span> −Energy</span>
+              </div>
+            </div>
+
+            <div class="relative w-full h-72 sm:h-80 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+              <canvas id="solCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            </div>
+
+            <!-- Key Answer Summary Cards -->
+            <div id="sol-kpi-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Detailed 6-Step Solution Breakdown (Slide 23 Strategy) -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-slate-900">Step-by-Step Solution Breakdown (Slide 23 Strategy)</h3>
+                <p class="text-xs text-slate-500">Formatted clearly for exam revision and checking intermediate values.</p>
+              </div>
+              <button onclick="copySolutionText()" id="copy-sol-btn" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                Copy Solution
+              </button>
+            </div>
+
+            <div id="sol-steps-container" class="space-y-4 text-xs sm:text-sm">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 3: FORMULAS & EXAM TRAPS CHEAT SHEET                           -->
+    <!-- ===================================================================== -->
+    <section id="view-formulas" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+        <h2 class="text-lg sm:text-xl font-bold text-slate-900">Topic 7: Flywheel Formula Sheet & Exam Guide</h2>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Complete reference from Dr. Mohd Syahril Ramadhan Bin Mohd Saufi's lecture slides (SEMM2223).
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          
+          <!-- Card 1 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-700">1. Speed Fluctuation</span>
+            <h3 class="font-bold text-slate-900 text-sm">Coefficient of Fluctuation of Speed (α)</h3>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 font-mono text-xs sm:text-sm text-slate-800 space-y-1.5">
+              <div>α = (ω<sub>max</sub> − ω<sub>min</sub>) / ω<sub>mean</sub></div>
+              <div>α = (N<sub>max</sub> − N<sub>min</sub>) / N<sub>mean</sub></div>
+              <div class="pt-1 border-t border-slate-100 text-slate-600">ω<sub>mean</sub> = (ω<sub>max</sub> + ω<sub>min</sub>) / 2 = 2πN<sub>mean</sub> / 60</div>
+            </div>
+            <p class="text-xs text-slate-600">Measures allowable speed variation relative to the mean operating speed.</p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">2. Energy Fluctuation</span>
+            <h3 class="font-bold text-slate-900 text-sm">Maximum Fluctuation of Energy (ΔE = βE)</h3>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 font-mono text-xs sm:text-sm text-slate-800 space-y-1.5">
+              <div>ΔE = βE = E<sub>max</sub> − E<sub>min</sub></div>
+              <div>ΔE = ½ I (ω<sub>max</sub>² − ω<sub>min</sub>²)</div>
+              <div class="pt-1 border-t border-slate-100 font-bold text-indigo-700">ΔE = βE = I · α · ω<sub>mean</sub>²</div>
+            </div>
+            <p class="text-xs text-slate-600">Work done per cycle: <span class="font-mono">E = T<sub>mean</sub> · θ<sub>cycle</sub></span>, and <span class="font-mono">β = ΔE / E</span>.</p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">3. Power & Inertia</span>
+            <h3 class="font-bold text-slate-900 text-sm">Power & Moment of Inertia</h3>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 font-mono text-xs sm:text-sm text-slate-800 space-y-1.5">
+              <div>Power: P = T<sub>mean</sub> · ω<sub>mean</sub> (Watts)</div>
+              <div>Inertia: I = (βE) / (α · ω<sub>mean</sub>²)</div>
+              <div class="pt-1 border-t border-slate-100 text-slate-600">Disc: I = ½ m r² &nbsp;|&nbsp; Rim: I = m k²</div>
+            </div>
+            <p class="text-xs text-slate-600">For solid cylinder/disc: <span class="font-mono">m = ρ · V = ρ · (π r² t)</span>.</p>
+          </div>
+
+        </div>
+
+        <!-- Type 1 vs Type 2 Comparison -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+          <div class="p-4 rounded-2xl border border-blue-200 bg-blue-50/40 space-y-2">
+            <h3 class="font-bold text-blue-950 text-sm sm:text-base">Type 1: Variable Input → Constant Output</h3>
+            <p class="text-xs text-slate-700"><strong>Examples:</strong> Internal Combustion (IC) Engines, Steam Engines.</p>
+            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+              <li><strong>Above T<sub>mean</sub> (+Area):</strong> Input torque exceeds load torque (<span class="font-mono">T<sub>in</sub> &gt; T<sub>mean</sub></span>). Crankshaft accelerates; flywheel <strong>absorbs</strong> energy.</li>
+              <li><strong>Below T<sub>mean</sub> (−Area):</strong> Input torque is less than load (<span class="font-mono">T<sub>in</sub> &lt; T<sub>mean</sub></span>). Crankshaft decelerates; flywheel <strong>releases</strong> energy.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 space-y-2">
+            <h3 class="font-bold text-amber-950 text-sm sm:text-base">Type 2: Constant Input → Variable Output</h3>
+            <p class="text-xs text-slate-700"><strong>Examples:</strong> Punching Machines, Shearing Machines, Rolling Mills.</p>
+            <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
+              <li><strong>Below T<sub>mean</sub> (+Area for Flywheel):</strong> During idle stroke (<span class="font-mono">T<sub>load</sub> &lt; T<sub>motor</sub></span>), motor energy goes into speeding up the flywheel (<strong>absorbs</strong> energy).</li>
+              <li><strong>Above T<sub>mean</sub> (−Area for Flywheel):</strong> During punching stroke (<span class="font-mono">T<sub>load</sub> &gt; T<sub>motor</sub></span>), heavy load slows the flywheel down (<strong>releases</strong> energy).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Common Exam Traps -->
+        <div class="mt-6 p-4 rounded-2xl bg-rose-50 border border-rose-200">
+          <h3 class="text-sm font-bold text-rose-900 mb-2">Common Exam Traps to Watch Out For!</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-rose-950">
+            <div class="p-3 rounded-xl bg-white border border-rose-200">
+              <strong>Trap 1: "±" Speed Fluctuation</strong><br />
+              If a question says <em>"speed within ±0.75% of mean speed"</em> (Slide 29), the total fluctuation is <span class="font-mono font-bold">α = 0.75% + 0.75% = 1.5% = 0.015</span>!
+            </div>
+            <div class="p-3 rounded-xl bg-white border border-rose-200">
+              <strong>Trap 2: Time (t) vs Angle (θ)</strong><br />
+              Work done is <span class="font-mono font-bold">∫ T dθ</span>, NOT <span class="font-mono">∫ T dt</span>! If the x-axis is in seconds (<span class="font-mono">t</span>), always multiply widths by <span class="font-mono font-bold">ω<sub>mean</sub></span> (<span class="font-mono">θ = ωt</span>) before computing energy areas in Joules!
+            </div>
+            <div class="p-3 rounded-xl bg-white border border-rose-200">
+              <strong>Trap 3: Total System Inertia</strong><br />
+              If the motor or machine parts already have inertia <span class="font-mono font-bold">I<sub>motor</sub></span> (Slide 34), subtract it from <span class="font-mono font-bold">I<sub>total</sub></span> to get <span class="font-mono font-bold">I<sub>flywheel</sub> = I<sub>total</sub> − I<sub>motor</sub></span> before finding flywheel dimensions!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500">
+    SEMM2223 Mechanics of Machines & Vibration • Topic 7: Flywheel Interactive Study & Solver Tool
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT ENGINE                                                     -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. TAB NAVIGATION
+    // =========================================================================
+    function switchTab(tabName) {
+      const tabs = ['sim', 'solver', 'formulas'];
+      tabs.forEach((t) => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          view.classList.remove('hidden');
+          btn.className = 'flex-1 md:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-blue-600 text-white shadow-sm whitespace-nowrap';
+        } else {
+          view.classList.add('hidden');
+          btn.className = 'flex-1 md:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white whitespace-nowrap';
+        }
+      });
+
+      if (tabName === 'sim') {
+        resizeSimCanvases();
+        renderSimulator();
+      } else if (tabName === 'solver') {
+        resizeSolverCanvas();
+        solveCustomProblem();
+      }
+    }
+
+    // =========================================================================
+    // 2. CORE MATHEMATICAL ENGINE FOR PIECEWISE TURNING MOMENT DIAGRAMS
+    // =========================================================================
+    /**
+     * Evaluates a piecewise linear Turning Moment Diagram over 1 cycle.
+     * Supports Type 1 (Variable Input, Constant Output) and Type 2 (Constant Input, Variable Output).
+     * Automatically finds exact intersection points where T(x) = T_mean, computes signed energy
+     * areas (+ absorbs energy into flywheel, - releases energy from flywheel), cumulative energy
+     * states at every transition point, E_max, E_min, and ΔE = βE.
+     */
+    function analyzeTurningMomentDiagram({
+      systemType,      // 1 or 2
+      segments,        // Array of { x1, x2, t1, t2 } in user x-units
+      xUnit,           // 'pi' | 'rad' | 'sec'
+      omegaMean,       // rad/s
+      energyMode,      // 'find_tmean' | 'find_idle'
+      givenTmean,      // N·m (used if energyMode === 'find_idle')
+      idleTorque       // N·m (used if energyMode === 'find_idle')
+    }) {
+      if (!segments || segments.length === 0) {
+        return { error: 'Please add at least one segment to the diagram.' };
+      }
+
+      // Clean and sort segments
+      const cleanSegs = segments
+        .map((s) => ({
+          x1: Number(s.x1),
+          x2: Number(s.x2),
+          t1: Number(s.t1),
+          t2: Number(s.t2),
+        }))
+        .filter((s) => !isNaN(s.x1) && !isNaN(s.x2) && !isNaN(s.t1) && !isNaN(s.t2) && s.x2 > s.x1)
+        .sort((a, b) => a.x1 - b.x1);
+
+      if (cleanSegs.length === 0) {
+        return { error: 'Ensure each segment has End X > Start X and valid numbers.' };
+      }
+
+      // Conversion factor from user x-axis unit to radians (θ)
+      const xToRad = xUnit === 'pi' ? Math.PI : xUnit === 'sec' ? omegaMean : 1;
+
+      // Calculate raw area under existing segments in user x-units: ∫ T(x) dx
+      let knownAreaX = 0;
+      let knownSpanX = 0;
+      cleanSegs.forEach((s) => {
+        const dx = s.x2 - s.x1;
+        knownAreaX += 0.5 * (s.t1 + s.t2) * dx;
+        knownSpanX += dx;
+      });
+
+      const cycleStartX = cleanSegs[0].x1;
+      let cycleEndX = cleanSegs[cleanSegs.length - 1].x2;
+      let workingSegs = [...cleanSegs];
+      let tMean = 0;
+      let solvedIdleDurationX = null;
+
+      if (energyMode === 'find_tmean') {
+        const totalSpanX = cycleEndX - cycleStartX;
+        if (totalSpanX <= 0) return { error: 'Total cycle duration must be positive.' };
+        tMean = knownAreaX / totalSpanX;
+      } else {
+        // Solve for unknown idle duration Δx so that total cycle area = givenTmean * (knownSpanX + Δx)
+        tMean = Number(givenTmean);
+        const tIdle = Number(idleTorque);
+        if (Math.abs(tMean - tIdle) < 1e-9) {
+          return { error: 'T_mean cannot equal T_idle when solving for unknown idle duration.' };
+        }
+        // knownAreaX + tIdle * Δx = tMean * (knownSpanX + Δx)
+        // Δx * (tMean - tIdle) = knownAreaX - tMean * knownSpanX
+        const deltaX = (knownAreaX - tMean * knownSpanX) / (tMean - tIdle);
+        if (deltaX < -1e-6) {
+          return {
+            error: `Calculated idle duration is negative (${deltaX.toFixed(3)}). Check T_mean (${tMean} Nm) vs diagram torque values.`,
+          };
+        }
+        solvedIdleDurationX = Math.max(0, deltaX);
+        if (solvedIdleDurationX > 1e-7) {
+          // Prepend idle segment before first active segment (standard convention like Slide 30 & 39)
+          const idleStart = cycleStartX;
+          // Shift active segments right by solvedIdleDurationX if cycleStartX === 0
+          workingSegs = [
+            { x1: idleStart, x2: idleStart + solvedIdleDurationX, t1: tIdle, t2: tIdle, isSolvedIdle: true },
+            ...cleanSegs.map((s) => ({
+              ...s,
+              x1: s.x1 + solvedIdleDurationX,
+              x2: s.x2 + solvedIdleDurationX,
+            })),
+          ];
+          cycleEndX = workingSegs[workingSegs.length - 1].x2;
+        }
+      }
+
+      // Now subdivide workingSegs at every exact crossing with T_mean
+      // Also sign convention for flywheel energy gain:
+      // Type 1 (Variable Input, Constant Load): Flywheel gains energy when T_curve > T_mean => sign = +1
+      // Type 2 (Constant Input, Variable Load): Flywheel gains energy when T_curve < T_mean => sign = -1
+      const energySign = systemType === 1 ? 1 : -1;
+
+      const subRegions = []; // Each subRegion has no crossing inside it
+      const keyPoints = [];  // Critical points along cycle where slope changes or T = T_mean
+
+      let cumulativeEnergyJ = 0; // Relative to U at start of cycle (ΔU = E(x) - U)
+      keyPoints.push({
+        label: 'A',
+        x: workingSegs[0].x1,
+        theta: workingSegs[0].x1 * xToRad,
+        torque: workingSegs[0].t1,
+        deltaU: 0,
+        isIntersection: Math.abs(workingSegs[0].t1 - tMean) < 1e-6,
+      });
+
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let labelIdx = 1;
+
+      workingSegs.forEach((seg, segIdx) => {
+        const d1 = seg.t1 - tMean;
+        const d2 = seg.t2 - tMean;
+        const dx = seg.x2 - seg.x1;
+
+        // Check if strictly crosses T_mean inside (x1, x2)
+        if ((d1 < -1e-7 && d2 > 1e-7) || (d1 > 1e-7 && d2 < -1e-7)) {
+          const frac = Math.abs(d1) / (Math.abs(d1) + Math.abs(d2));
+          const xCross = seg.x1 + frac * dx;
+
+          // First half: x1 -> xCross
+          const areaX1 = 0.5 * d1 * (xCross - seg.x1);
+          const dE1 = energySign * areaX1 * xToRad;
+          subRegions.push({
+            x1: seg.x1,
+            x2: xCross,
+            t1: seg.t1,
+            t2: tMean,
+            d1,
+            d2: 0,
+            areaX: areaX1,
+            energyJ: dE1,
+            isPositiveFlywheel: dE1 >= 0,
+          });
+          cumulativeEnergyJ += dE1;
+          keyPoints.push({
+            label: alphabet[labelIdx % alphabet.length] + (labelIdx >= 26 ? Math.floor(labelIdx / 26) : ''),
+            x: xCross,
+            theta: xCross * xToRad,
+            torque: tMean,
+            deltaU: cumulativeEnergyJ,
+            isIntersection: true,
+          });
+          labelIdx++;
+
+          // Second half: xCross -> x2
+          const areaX2 = 0.5 * d2 * (seg.x2 - xCross);
+          const dE2 = energySign * areaX2 * xToRad;
+          subRegions.push({
+            x1: xCross,
+            x2: seg.x2,
+            t1: tMean,
+            t2: seg.t2,
+            d1: 0,
+            d2,
+            areaX: areaX2,
+            energyJ: dE2,
+            isPositiveFlywheel: dE2 >= 0,
+          });
+          cumulativeEnergyJ += dE2;
+          keyPoints.push({
+            label: alphabet[labelIdx % alphabet.length] + (labelIdx >= 26 ? Math.floor(labelIdx / 26) : ''),
+            x: seg.x2,
+            theta: seg.x2 * xToRad,
+            torque: seg.t2,
+            deltaU: cumulativeEnergyJ,
+            isIntersection: Math.abs(d2) < 1e-6,
+          });
+          labelIdx++;
+        } else {
+          // No crossing inside this segment
+          const areaX = 0.5 * (d1 + d2) * dx;
+          const dE = energySign * areaX * xToRad;
+          subRegions.push({
+            x1: seg.x1,
+            x2: seg.x2,
+            t1: seg.t1,
+            t2: seg.t2,
+            d1,
+            d2,
+            areaX,
+            energyJ: dE,
+            isPositiveFlywheel: dE >= 0,
+          });
+          cumulativeEnergyJ += dE;
+
+          // Check if next segment has a vertical step jump across T_mean
+          const nextSeg = workingSegs[segIdx + 1];
+          const isEndTouch = Math.abs(d2) < 1e-6;
+          const isStepCross =
+            nextSeg &&
+            Math.abs(nextSeg.x1 - seg.x2) < 1e-7 &&
+            ((d2 < -1e-7 && nextSeg.t1 - tMean > 1e-7) || (d2 > 1e-7 && nextSeg.t1 - tMean < -1e-7));
+
+          keyPoints.push({
+            label: alphabet[labelIdx % alphabet.length] + (labelIdx >= 26 ? Math.floor(labelIdx / 26) : ''),
+            x: seg.x2,
+            theta: seg.x2 * xToRad,
+            torque: seg.t2,
+            deltaU: cumulativeEnergyJ,
+            isIntersection: isEndTouch || isStepCross || segIdx === workingSegs.length - 1,
+          });
+          labelIdx++;
+        }
+      });
+
+      // Group consecutive subRegions of the same energy sign into clean "Loops" (+a, -b, +c, ...)
+      const loops = [];
+      subRegions.forEach((sr) => {
+        if (Math.abs(sr.energyJ) < 1e-7) return;
+        const lastLoop = loops[loops.length - 1];
+        if (lastLoop && lastLoop.isPositive === sr.isPositiveFlywheel) {
+          lastLoop.x2 = sr.x2;
+          lastLoop.areaX += sr.areaX;
+          lastLoop.energyJ += sr.energyJ;
+          lastLoop.subRegions.push(sr);
+        } else {
+          loops.push({
+            name: String.fromCharCode(97 + loops.length), // a, b, c, d...
+            isPositive: sr.isPositiveFlywheel,
+            x1: sr.x1,
+            x2: sr.x2,
+            areaX: sr.areaX,
+            energyJ: sr.energyJ,
+            subRegions: [sr],
+          });
+        }
+      });
+
+      // Build clean energy milestone points at loop boundaries (A, B, C, D...)
+      const milestones = [];
+      let runningU = 0;
+      milestones.push({
+        point: 'A',
+        x: workingSegs[0].x1,
+        theta: workingSegs[0].x1 * xToRad,
+        deltaU: 0,
+        expr: 'U',
+      });
+
+      loops.forEach((lp, idx) => {
+        runningU += lp.energyJ;
+        const signChar = lp.energyJ >= 0 ? '+' : '−';
+        const prevExpr = milestones[milestones.length - 1].expr;
+        milestones.push({
+          point: alphabet[(idx + 1) % alphabet.length],
+          x: lp.x2,
+          theta: lp.x2 * xToRad,
+          deltaU: runningU,
+          expr: `${prevExpr} ${signChar} ${lp.name}`,
+          loopName: lp.name,
+          loopEnergyJ: lp.energyJ,
+        });
+      });
+
+      // Find E_max and E_min among all milestones & keyPoints
+      let maxPt = milestones[0];
+      let minPt = milestones[0];
+      milestones.forEach((m) => {
+        if (m.deltaU > maxPt.deltaU + 1e-6) maxPt = m;
+        if (m.deltaU < minPt.deltaU - 1e-6) minPt = m;
+      });
+
+      const deltaE = maxPt.deltaU - minPt.deltaU; // β * E in Joules
+      const totalCycleAngleRad = (cycleEndX - cycleStartX) * xToRad;
+      const workPerCycleJ = tMean * totalCycleAngleRad;
+      const beta = workPerCycleJ > 0 ? deltaE / workPerCycleJ : 0;
+
+      return {
+        error: null,
+        systemType,
+        xUnit,
+        xToRad,
+        workingSegs,
+        subRegions,
+        loops,
+        milestones,
+        keyPoints,
+        tMean,
+        solvedIdleDurationX,
+        cycleStartX,
+        cycleEndX,
+        totalCycleAngleRad,
+        workPerCycleJ,
+        maxPt,
+        minPt,
+        deltaE,
+        beta,
+      };
+    }
+
+    // Helper to sample T(x) and ΔU(x) smoothly at any fraction u in [0, 1] of the cycle
+    function sampleCycleAtFraction(analysis, u) {
+      const clampedU = Math.max(0, Math.min(1, u));
+      const xTarget = analysis.cycleStartX + clampedU * (analysis.cycleEndX - analysis.cycleStartX);
+      const energySign = analysis.systemType === 1 ? 1 : -1;
+
+      let accumU = 0;
+      let currentT = analysis.workingSegs[0].t1;
+
+      for (let i = 0; i < analysis.workingSegs.length; i++) {
+        const s = analysis.workingSegs[i];
+        const dx = s.x2 - s.x1;
+        if (xTarget >= s.x2) {
+          const avgD = 0.5 * (s.t1 + s.t2) - analysis.tMean;
+          accumU += energySign * avgD * dx * analysis.xToRad;
+          currentT = s.t2;
+        } else if (xTarget >= s.x1) {
+          const frac = dx > 0 ? (xTarget - s.x1) / dx : 0;
+          currentT = s.t1 + frac * (s.t2 - s.t1);
+          const partialDx = xTarget - s.x1;
+          const avgD = 0.5 * (s.t1 + currentT) - analysis.tMean;
+          accumU += energySign * avgD * partialDx * analysis.xToRad;
+          break;
+        }
+      }
+
+      return { x: xTarget, theta: xTarget * analysis.xToRad, torque: currentT, deltaU: accumU };
+    }
+
+    // =========================================================================
+    // 3. MODULE 1: VISUAL PHYSICS SIMULATOR STATE & ANIMATION
+    // =========================================================================
+    const simState = {
+      mode: 1, // 1 = 4-Stroke IC Engine, 2 = Punching Machine
+      playing: true,
+      phase: 0, // 0 to 1 across 1 complete cycle
+      visualAngle: 0,
+      inertia: 15,
+      rpm: 300,
+      lastTime: performance.now(),
+      analysis: null,
+    };
+
+    function getSimPresetConfig(mode) {
+      if (mode === 1) {
+        // 4-Stroke IC Engine (0 to 4π): Power (0-π), Exhaust (π-2π), Intake (2π-3π), Compression (3π-4π)
+        return {
+          systemType: 1,
+          xUnit: 'pi',
+          segments: [
+            { x1: 0, x2: 0.35, t1: 120, t2: 920 },
+            { x1: 0.35, x2: 1.0, t1: 920, t2: 120 },
+            { x1: 1.0, x2: 1.5, t1: 120, t2: 40 },
+            { x1: 1.5, x2: 2.0, t1: 40, t2: 120 },
+            { x1: 2.0, x2: 2.5, t1: 120, t2: 70 },
+            { x1: 2.5, x2: 3.0, t1: 70, t2: 120 },
+            { x1: 3.0, x2: 3.6, t1: 120, t2: -60 },
+            { x1: 3.6, x2: 4.0, t1: -60, t2: 120 },
+          ],
+        };
+      } else {
+        // Punching Machine (0 to 2π): Idle accumulation (0 to 1.4π), Heavy Punching spike (1.4π to 2π)
+        return {
+          systemType: 2,
+          xUnit: 'pi',
+          segments: [
+            { x1: 0, x2: 1.4, t1: 20, t2: 20 },
+            { x1: 1.4, x2: 1.7, t1: 20, t2: 620 },
+            { x1: 1.7, x2: 2.0, t1: 620, t2: 20 },
+          ],
+        };
+      }
+    }
+
+    function setSimMode(mode) {
+      simState.mode = mode;
+      const btn1 = document.getElementById('sim-mode-1');
+      const btn2 = document.getElementById('sim-mode-2');
+      if (mode === 1) {
+        btn1.className = 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-indigo-600 text-white border-indigo-600 shadow-sm';
+        btn2.className = 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-white text-slate-700 border-slate-300 hover:bg-slate-50';
+        document.getElementById('sim-rig-title').textContent = 'Single-Cylinder 4-Stroke Engine';
+        document.getElementById('sim-tmd-subtitle').textContent = 'Type 1: Variable Engine Torque T_input vs Constant Load T_mean';
+        document.getElementById('sim-cycle-max-label').textContent = 'Cycle: 4π rad';
+      } else {
+        btn2.className = 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-indigo-600 text-white border-indigo-600 shadow-sm';
+        btn1.className = 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all bg-white text-slate-700 border-slate-300 hover:bg-slate-50';
+        document.getElementById('sim-rig-title').textContent = 'Motor-Driven Crank Punch Press';
+        document.getElementById('sim-tmd-subtitle').textContent = 'Type 2: Constant Motor Torque T_mean vs Variable Punch Load T_load';
+        document.getElementById('sim-cycle-max-label').textContent = 'Cycle: 2π rad';
+      }
+      updateSimParams();
+    }
+
+    function updateSimParams() {
+      simState.inertia = Number(document.getElementById('sim-inertia').value);
+      simState.rpm = Number(document.getElementById('sim-rpm').value);
+      document.getElementById('sim-inertia-val').textContent = simState.inertia;
+      document.getElementById('sim-rpm-val').textContent = simState.rpm;
+
+      const omegaMean = (2 * Math.PI * simState.rpm) / 60;
+      const cfg = getSimPresetConfig(simState.mode);
+      simState.analysis = analyzeTurningMomentDiagram({
+        systemType: cfg.systemType,
+        segments: cfg.segments,
+        xUnit: cfg.xUnit,
+        omegaMean,
+        energyMode: 'find_tmean',
+      });
+
+      updateSimReadouts();
+      renderSimulator();
+    }
+
+    function updateSimReadouts() {
+      const a = simState.analysis;
+      if (!a || a.error) return;
+
+      const omegaMean = (2 * Math.PI * simState.rpm) / 60;
+      const I = simState.inertia;
+      // ΔE = I * α * ω_mean^2 => α = ΔE / (I * ω_mean^2)
+      const alpha = a.deltaE / (I * omegaMean * omegaMean);
+      const alphaPct = alpha * 100;
+
+      // Instantaneous speed at current phase:
+      // E(θ) - E_mean ≈ I * ω_mean * (ω(θ) - ω_mean)
+      const midDeltaU = 0.5 * (a.maxPt.deltaU + a.minPt.deltaU);
+      const sample = sampleCycleAtFraction(a, simState.phase);
+      const instOmega = omegaMean + (sample.deltaU - midDeltaU) / (I * omegaMean);
+      const instRpm = (instOmega * 60) / (2 * Math.PI);
+
+      const maxRpm = simState.rpm * (1 + alpha / 2);
+      const minRpm = simState.rpm * (1 - alpha / 2);
+
+      document.getElementById('sim-inst-rpm').textContent = `${instRpm.toFixed(1)} rpm`;
+      document.getElementById('sim-inst-omega').textContent = `${instOmega.toFixed(2)} rad/s`;
+      document.getElementById('sim-alpha-val').textContent = `${alphaPct.toFixed(2)}%`;
+      document.getElementById('sim-delta-e-val').textContent = `ΔE = ${a.deltaE.toFixed(1)} J`;
+      document.getElementById('sim-max-rpm').textContent = `${maxRpm.toFixed(1)} rpm`;
+      document.getElementById('sim-min-rpm').textContent = `${minRpm.toFixed(1)} rpm`;
+
+      const deg = ((sample.theta * 180) / Math.PI) % 720;
+      document.getElementById('sim-angle-label').textContent = `${sample.x.toFixed(2)}π rad (${Math.round(deg)}°)`;
+
+      // Update stroke badge
+      const badge = document.getElementById('sim-stroke-badge');
+      if (simState.mode === 1) {
+        if (sample.x < 1.0) {
+          badge.textContent = 'Power Stroke (+a: Accelerating)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        } else if (sample.x < 2.0) {
+          badge.textContent = 'Exhaust Stroke (−b: Decelerating)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        } else if (sample.x < 3.0) {
+          badge.textContent = 'Intake Stroke (−c: Decelerating)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40';
+        } else {
+          badge.textContent = 'Compression Stroke (−d: Decelerating)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        }
+      } else {
+        if (sample.x < 1.4) {
+          badge.textContent = 'Idle Stage (+a: Storing Energy)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        } else {
+          badge.textContent = 'Punching Stage (−b: Releasing Energy!)';
+          badge.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40';
+        }
+      }
+
+      // Update Energy Strip
+      const strip = document.getElementById('sim-energy-strip');
+      strip.innerHTML = a.milestones
+        .map((m) => {
+          const isMax = m.point === a.maxPt.point;
+          const isMin = m.point === a.minPt.point;
+          const tag = isMax ? ' [E_max]' : isMin ? ' [E_min]' : '';
+          const color = isMax ? 'text-emerald-400 font-bold' : isMin ? 'text-rose-400 font-bold' : 'text-slate-300';
+          return `<span class="${color} px-2 py-1 rounded bg-slate-800 border border-slate-700">E<sub>${m.point}</sub> = ${m.expr} (${m.deltaU >= 0 ? '+' : ''}${m.deltaU.toFixed(0)} J)${tag}</span>`;
+        })
+        .join('<span class="text-slate-500">→</span>');
+    }
+
+    function toggleSimPlay() {
+      simState.playing = !simState.playing;
+      document.getElementById('sim-play-icon').textContent = simState.playing ? '❚❚' : '▶';
+      document.getElementById('sim-play-text').textContent = simState.playing ? 'Pause' : 'Play';
+      if (simState.playing) {
+        simState.lastTime = performance.now();
+      }
+    }
+
+    function onScrubSim(val) {
+      simState.playing = false;
+      document.getElementById('sim-play-icon').textContent = '▶';
+      document.getElementById('sim-play-text').textContent = 'Play';
+      simState.phase = Number(val) / 1000;
+      updateSimReadouts();
+      renderSimulator();
+    }
+
+    function jumpToExtreme(which) {
+      const a = simState.analysis;
+      if (!a) return;
+      simState.playing = false;
+      document.getElementById('sim-play-icon').textContent = '▶';
+      document.getElementById('sim-play-text').textContent = 'Play';
+      const targetPt = which === 'max' ? a.maxPt : a.minPt;
+      simState.phase = (targetPt.x - a.cycleStartX) / (a.cycleEndX - a.cycleStartX);
+      document.getElementById('sim-scrubber').value = Math.round(simState.phase * 1000);
+      updateSimReadouts();
+      renderSimulator();
+    }
+
+    // Resize Canvases Responsively
+    function setupHiDPICanvas(canvas) {
+      if (!canvas) return null;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(10, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(10, Math.floor(rect.height * dpr));
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { ctx, w: rect.width, h: rect.height };
+    }
+
+    function resizeSimCanvases() {
+      setupHiDPICanvas(document.getElementById('mechCanvas'));
+      setupHiDPICanvas(document.getElementById('simTmdCanvas'));
+      setupHiDPICanvas(document.getElementById('simEnergyCanvas'));
+    }
+
+    // Render Mechanical Rig (Flywheel + Piston OR Punch Press)
+    function drawMechCanvas() {
+      const res = setupHiDPICanvas(document.getElementById('mechCanvas'));
+      if (!res || !simState.analysis) return;
+      const { ctx, w, h } = res;
+      const a = simState.analysis;
+      const sample = sampleCycleAtFraction(a, simState.phase);
+      const crankAngle = sample.theta; // radians
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Subtle background grid
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 24) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 24) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      const cx = w * 0.36;
+      const cy = h * 0.54;
+      // Flywheel radius scales slightly with Inertia I so students see a heavier wheel
+      const fwRadius = Math.min(w, h) * (0.24 + (simState.inertia / 80) * 0.11);
+
+      // Energy glow around flywheel
+      const normE = a.deltaE > 0 ? (sample.deltaU - a.minPt.deltaU) / a.deltaE : 0.5;
+      const glowGrad = ctx.createRadialGradient(cx, cy, fwRadius * 0.5, cx, cy, fwRadius * 1.3);
+      glowGrad.addColorStop(0, `rgba(59, 130, 246, ${0.15 + normE * 0.25})`);
+      glowGrad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, fwRadius * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw Rotating Flywheel Rim & Spokes
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(crankAngle);
+
+      // Outer Heavy Rim
+      ctx.beginPath();
+      ctx.arc(0, 0, fwRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 10 + (simState.inertia / 80) * 8;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, fwRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 6 Spokes
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(ang) * fwRadius, Math.sin(ang) * fwRadius);
+        ctx.strokeStyle = i === 0 ? '#38bdf8' : '#475569';
+        ctx.lineWidth = i === 0 ? 4 : 3;
+        ctx.stroke();
+      }
+
+      // Center Hub
+      ctx.beginPath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // Crank-Slider Mechanism (Horizontal Piston for Type 1, Vertical Punch Ram for Type 2)
+      const crankR = fwRadius * 0.48;
+      const conRodL = fwRadius * 1.35;
+
+      if (simState.mode === 1) {
+        // Horizontal IC Engine Cylinder on the right
+        const pinX = cx + Math.cos(crankAngle) * crankR;
+        const pinY = cy + Math.sin(crankAngle) * crankR;
+        const dy = pinY - cy;
+        const wristX = pinX + Math.sqrt(Math.max(0, conRodL * conRodL - dy * dy));
+        const wristY = cy;
+
+        // Cylinder Walls
+        const cylLeft = cx + conRodL - crankR - 18;
+        const cylRight = cx + conRodL + crankR + 28;
+        const cylH = 44;
+
+        // Combustion chamber gas color
+        let gasColor = 'rgba(56, 189, 248, 0.15)';
+        if (sample.x < 1.0) gasColor = `rgba(249, 115, 22, ${0.55 * (1 - sample.x)})`; // Power flash
+        else if (sample.x < 2.0) gasColor = 'rgba(148, 163, 184, 0.25)'; // Exhaust
+        else if (sample.x < 3.0) gasColor = 'rgba(56, 189, 248, 0.25)'; // Intake
+        else gasColor = `rgba(234, 179, 8, ${0.15 + 0.35 * (sample.x - 3.0)})`; // Compression
+
+        ctx.fillStyle = gasColor;
+        ctx.fillRect(wristX + 12, cy - cylH / 2, cylRight - (wristX + 12), cylH);
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(cylLeft, cy - cylH / 2);
+        ctx.lineTo(cylRight, cy - cylH / 2);
+        ctx.lineTo(cylRight, cy + cylH / 2);
+        ctx.lineTo(cylLeft, cy + cylH / 2);
+        ctx.stroke();
+
+        // Piston Head
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(wristX - 10, cy - cylH / 2 + 2, 22, cylH - 4);
+
+        // Crank Web & Connecting Rod
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(pinX, pinY); ctx.stroke();
+
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(pinX, pinY); ctx.lineTo(wristX, wristY); ctx.stroke();
+
+        // Pin joints
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(pinX, pinY, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wristX, wristY, 4, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // Type 2: Vertical Punching Machine Ram on the right
+        const punchX = w * 0.76;
+        const pinX = punchX + Math.sin(crankAngle) * (crankR * 0.7);
+        const pinY = cy - 35 - Math.cos(crankAngle) * (crankR * 0.7);
+        const ramY = pinY + 55;
+
+        // Flywheel shaft drive belt/gear link
+        ctx.strokeStyle = '#475569';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(punchX, cy - 35); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Eccentric Crank Disc
+        ctx.fillStyle = '#334155';
+        ctx.beginPath(); ctx.arc(punchX, cy - 35, crankR * 0.85, 0, Math.PI * 2); ctx.fill();
+
+        // Connecting link to punch ram
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(pinX, pinY); ctx.lineTo(punchX, ramY); ctx.stroke();
+
+        // Punch Ram Block
+        const isPunching = sample.x >= 1.4;
+        ctx.fillStyle = isPunching ? '#f43f5e' : '#38bdf8';
+        ctx.fillRect(punchX - 16, ramY, 32, 26);
+
+        // Metal Sheet & Die Anvil at bottom
+        const anvilY = cy + 48;
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(punchX - 28, anvilY + 6, 56, 14);
+        ctx.fillStyle = isPunching ? '#fbbf24' : '#94a3b8';
+        ctx.fillRect(punchX - 26, anvilY, 52, 5);
+
+        if (isPunching) {
+          ctx.fillStyle = '#fda4af';
+          ctx.font = 'bold 10px Inter';
+          ctx.fillText('PUNCHING!', punchX - 26, anvilY + 32);
+        }
+      }
+
+      // Kinetic Energy Reservoir Bar on bottom-left
+      const barW = w - 24;
+      const barH = 8;
+      const barX = 12;
+      const barY = h - 16;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = normE > 0.5 ? '#10b981' : '#f59e0b';
+      ctx.fillRect(barX, barY, barW * Math.max(0.05, normE), barH);
+    }
+
+    // Shared Helper to Draw Turning Moment Diagram on a Canvas
+    function drawTurningMomentChart(canvasId, analysis, markerFraction = null, hoverX = null) {
+      const res = setupHiDPICanvas(document.getElementById(canvasId));
+      if (!res || !analysis || analysis.error) return null;
+      const { ctx, w, h } = res;
+
+      const pad = { top: 24, right: 24, bottom: 36, left: 56 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Determine Y-axis bounds
+      let minT = Math.min(0, analysis.tMean);
+      let maxT = Math.max(0, analysis.tMean);
+      analysis.workingSegs.forEach((s) => {
+        minT = Math.min(minT, s.t1, s.t2);
+        maxT = Math.max(maxT, s.t1, s.t2);
+      });
+      const rangeT = Math.max(10, maxT - minT);
+      minT -= rangeT * 0.12;
+      maxT += rangeT * 0.15;
+
+      const xMin = analysis.cycleStartX;
+      const xMax = analysis.cycleEndX;
+      const xSpan = Math.max(1e-6, xMax - xMin);
+
+      const toPxX = (x) => pad.left + ((x - xMin) / xSpan) * plotW;
+      const toPxY = (t) => pad.top + ((maxT - t) / (maxT - minT)) * plotH;
+
+      // Grid lines
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      const ySteps = 5;
+      ctx.font = '11px JetBrains Mono';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= ySteps; i++) {
+        const valT = minT + (i / ySteps) * (maxT - minT);
+        const py = toPxY(valT);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, py);
+        ctx.lineTo(w - pad.right, py);
+        ctx.stroke();
+        ctx.fillText(Math.round(valT), pad.left - 8, py + 4);
+      }
+
+      // Zero Torque Line if inside view
+      if (minT < 0 && maxT > 0) {
+        const zeroY = toPxY(0);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, zeroY);
+        ctx.lineTo(w - pad.right, zeroY);
+        ctx.stroke();
+      }
+
+      // Draw Shaded SubRegions (+Energy = Green, -Energy = Red)
+      const meanY = toPxY(analysis.tMean);
+      analysis.subRegions.forEach((sr) => {
+        const x1Px = toPxX(sr.x1);
+        const x2Px = toPxX(sr.x2);
+        const y1Px = toPxY(sr.t1);
+        const y2Px = toPxY(sr.t2);
+
+        ctx.beginPath();
+        ctx.moveTo(x1Px, meanY);
+        ctx.lineTo(x1Px, y1Px);
+        ctx.lineTo(x2Px, y2Px);
+        ctx.lineTo(x2Px, meanY);
+        ctx.closePath();
+
+        ctx.fillStyle = sr.isPositiveFlywheel
+          ? 'rgba(16, 185, 129, 0.25)'
+          : 'rgba(244, 63, 94, 0.24)';
+        ctx.fill();
+      });
+
+      // Draw Loop Labels (+a, -b, +c...)
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 12px JetBrains Mono';
+      analysis.loops.forEach((lp) => {
+        const midX = toPxX(0.5 * (lp.x1 + lp.x2));
+        // Find torque near midpoint
+        const midU = (0.5 * (lp.x1 + lp.x2) - xMin) / xSpan;
+        const samp = sampleCycleAtFraction(analysis, midU);
+        const midY = 0.5 * (meanY + toPxY(samp.torque));
+        ctx.fillStyle = lp.isPositive ? '#047857' : '#be123c';
+        ctx.fillText(`${lp.isPositive ? '+' : '−'}${lp.name}`, midX, midY + 4);
+      });
+
+      // Draw Torque Profile Curve
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      analysis.workingSegs.forEach((s, idx) => {
+        const x1Px = toPxX(s.x1);
+        const y1Px = toPxY(s.t1);
+        const x2Px = toPxX(s.x2);
+        const y2Px = toPxY(s.t2);
+        if (idx === 0) ctx.moveTo(x1Px, y1Px);
+        else ctx.lineTo(x1Px, y1Px); // Connects vertical step jumps cleanly
+        ctx.lineTo(x2Px, y2Px);
+      });
+      ctx.stroke();
+
+      // Draw T_mean Dashed Line
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, meanY);
+      ctx.lineTo(w - pad.right, meanY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#1d4ed8';
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 11px JetBrains Mono';
+      ctx.fillText(`T_mean = ${analysis.tMean.toFixed(1)} Nm`, pad.left + 6, meanY - 6);
+
+      // Draw Intersection Milestone Points (A, B, C...)
+      analysis.milestones.forEach((m) => {
+        const px = toPxX(m.x);
+        const isMax = m.point === analysis.maxPt.point;
+        const isMin = m.point === analysis.minPt.point;
+
+        ctx.beginPath();
+        ctx.arc(px, meanY, isMax || isMin ? 5 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isMax ? '#10b981' : isMin ? '#f43f5e' : '#2563eb';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 11px Inter';
+        ctx.fillText(m.point, px, meanY - 10);
+      });
+
+      // X-Axis Labels
+      ctx.fillStyle = '#475569';
+      ctx.font = '11px JetBrains Mono';
+      ctx.textAlign = 'center';
+      const unitSuffix = analysis.xUnit === 'pi' ? 'π' : analysis.xUnit === 'sec' ? 's' : '';
+      const tickCount = 6;
+      for (let i = 0; i <= tickCount; i++) {
+        const xv = xMin + (i / tickCount) * xSpan;
+        const px = toPxX(xv);
+        ctx.fillText(`${Number(xv.toFixed(2))}${unitSuffix}`, px, h - 12);
+      }
+
+      // Live Scrubber Cursor Line (for Simulator)
+      if (markerFraction !== null) {
+        const curX = xMin + markerFraction * xSpan;
+        const curPx = toPxX(curX);
+        const samp = sampleCycleAtFraction(analysis, markerFraction);
+        const curPy = toPxY(samp.torque);
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(curPx, pad.top);
+        ctx.lineTo(curPx, h - pad.bottom);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(curPx, curPy, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Hover Tooltip (for Solver & Simulator)
+      if (hoverX !== null && hoverX >= pad.left && hoverX <= w - pad.right) {
+        const frac = (hoverX - pad.left) / plotW;
+        const samp = sampleCycleAtFraction(analysis, frac);
+        const px = toPxX(samp.x);
+        const py = toPxY(samp.torque);
+
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.35)';
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, pad.top);
+        ctx.lineTo(px, h - pad.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+
+        // Tooltip box
+        const tipW = 165;
+        const tipH = 54;
+        const tipX = px + tipW + 12 > w ? px - tipW - 10 : px + 10;
+        const tipY = Math.max(pad.top, Math.min(h - pad.bottom - tipH, py - 25));
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.beginPath();
+        ctx.roundRect(tipX, tipY, tipW, tipH, 8);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.textAlign = 'left';
+        ctx.font = '11px JetBrains Mono';
+        ctx.fillText(`x = ${samp.x.toFixed(2)}${unitSuffix} (${samp.theta.toFixed(2)} rad)`, tipX + 8, tipY + 17);
+        ctx.fillText(`T = ${samp.torque.toFixed(1)} Nm`, tipX + 8, tipY + 33);
+        ctx.fillStyle = samp.deltaU >= 0 ? '#34d399' : '#fb7185';
+        ctx.fillText(`ΔU = ${samp.deltaU >= 0 ? '+' : ''}${samp.deltaU.toFixed(1)} J`, tipX + 8, tipY + 48);
+      }
+
+      return { pad, plotW, plotH };
+    }
+
+    // Draw Cumulative Energy ΔU(θ) & Speed Curve for Simulator
+    function drawSimEnergyChart() {
+      const res = setupHiDPICanvas(document.getElementById('simEnergyCanvas'));
+      const a = simState.analysis;
+      if (!res || !a || a.error) return;
+      const { ctx, w, h } = res;
+
+      const pad = { top: 24, right: 24, bottom: 32, left: 56 };
+      const plotW = w - pad.left - pad.right;
+      const plotH = h - pad.top - pad.bottom;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const minU = a.minPt.deltaU;
+      const maxU = a.maxPt.deltaU;
+      const spanU = Math.max(10, maxU - minU);
+      const yMin = minU - spanU * 0.22;
+      const yMax = maxU + spanU * 0.25;
+
+      const toPxX = (uFrac) => pad.left + uFrac * plotW;
+      const toPxY = (uVal) => pad.top + ((yMax - uVal) / (yMax - yMin)) * plotH;
+
+      // Grid & Y labels
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      ctx.font = '11px JetBrains Mono';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const val = yMin + (i / 4) * (yMax - yMin);
+        const py = toPxY(val);
+        ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(w - pad.right, py); ctx.stroke();
+        ctx.fillText(`${Math.round(val)}J`, pad.left - 8, py + 4);
+      }
+
+      // Baseline U (0 J)
+      const zeroY = toPxY(0);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(pad.left, zeroY); ctx.lineTo(w - pad.right, zeroY); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Sample curve densely
+      const samples = 160;
+      ctx.beginPath();
+      for (let i = 0; i <= samples; i++) {
+        const frac = i / samples;
+        const samp = sampleCycleAtFraction(a, frac);
+        const px = toPxX(frac);
+        const py = toPxY(samp.deltaU);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = '#4f46e5';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Mark E_max and E_min
+      const xSpan = a.cycleEndX - a.cycleStartX;
+      const maxFrac = (a.maxPt.x - a.cycleStartX) / xSpan;
+      const minFrac = (a.minPt.x - a.cycleStartX) / xSpan;
+
+      const maxPx = toPxX(maxFrac);
+      const maxPy = toPxY(a.maxPt.deltaU);
+      const minPx = toPxX(minFrac);
+      const minPy = toPxY(a.minPt.deltaU);
+
+      // Dashed ΔE = βE bracket line
+      ctx.strokeStyle = '#10b981';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(pad.left, maxPy); ctx.lineTo(w - pad.right, maxPy); ctx.stroke();
+      ctx.strokeStyle = '#f43f5e';
+      ctx.beginPath(); ctx.moveTo(pad.left, minPy); ctx.lineTo(w - pad.right, minPy); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Dots & Badges for E_max / E_min
+      ctx.beginPath(); ctx.arc(maxPx, maxPy, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#10b981'; ctx.fill();
+      ctx.fillStyle = '#065f46'; ctx.font = 'bold 11px Inter'; ctx.textAlign = 'center';
+      ctx.fillText(`E_max (${a.maxPt.point})`, maxPx, maxPy - 9);
+
+      ctx.beginPath(); ctx.arc(minPx, minPy, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#f43f5e'; ctx.fill();
+      ctx.fillStyle = '#9f1239';
+      ctx.fillText(`E_min (${a.minPt.point})`, minPx, minPy + 16);
+
+      // Current Phase Cursor
+      const curPx = toPxX(simState.phase);
+      const curSamp = sampleCycleAtFraction(a, simState.phase);
+      const curPy = toPxY(curSamp.deltaU);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(curPx, pad.top); ctx.lineTo(curPx, h - pad.bottom); ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(curPx, curPy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    function renderSimulator() {
+      drawMechCanvas();
+      drawTurningMomentChart('simTmdCanvas', simState.analysis, simState.phase, null);
+      drawSimEnergyChart();
+    }
+
+    // Main Animation Loop
+    function simLoop(now) {
+      const dt = Math.min(0.05, (now - simState.lastTime) / 1000);
+      simState.lastTime = now;
+
+      if (simState.playing && !document.getElementById('view-sim').classList.contains('hidden')) {
+        // Visually scale speed nicely so user can see acceleration & deceleration
+        const baseCyclesPerSec = (simState.rpm / 300) * 0.28;
+        const a = simState.analysis;
+        let speedFactor = 1;
+        if (a && !a.error && a.deltaE > 0) {
+          const samp = sampleCycleAtFraction(a, simState.phase);
+          const midU = 0.5 * (a.maxPt.deltaU + a.minPt.deltaU);
+          // Exaggerate visual speed ripple slightly when I is small so students perceive it clearly
+          const visualRipple = Math.min(0.45, 4.5 / simState.inertia);
+          speedFactor = 1 + ((samp.deltaU - midU) / (0.5 * a.deltaE)) * visualRipple;
+        }
+        simState.phase = (simState.phase + dt * baseCyclesPerSec * speedFactor) % 1;
+        document.getElementById('sim-scrubber').value = Math.round(simState.phase * 1000);
+        updateSimReadouts();
+        renderSimulator();
+      }
+      requestAnimationFrame(simLoop);
+    }
+
+    // =========================================================================
+    // 4. MODULE 2: CUSTOM DIAGRAM BUILDER & SLIDE PROBLEM SOLVER
+    // =========================================================================
+    let solverSegments = [];
+    let latestSolverAnalysis = null;
+    let solverHoverX = null;
+
+    const SLIDE_PRESETS = {
+      slide24: {
+        systemType: 1,
+        xUnit: 'pi',
+        energyMode: 'find_tmean',
+        speedMode: 'mean',
+        rpm: 300,
+        targetMode: 'alpha',
+        inertia: 180,
+        iOther: 0,
+        segments: [
+          { x1: 0, x2: 1, t1: 750, t2: 3000 },
+          { x1: 1, x2: 3, t1: 3000, t2: 3000 },
+          { x1: 3, x2: 4, t1: 3000, t2: 750 },
+          { x1: 4, x2: 6, t1: 750, t2: 750 },
+        ],
+      },
+      slide29: {
+        systemType: 1,
+        xUnit: 'pi',
+        energyMode: 'find_tmean',
+        speedMode: 'mean',
+        rpm: 100,
+        targetMode: 'inertia',
+        alphaPct: 1.5, // ±0.75% = 1.5%
+        iOther: 0,
+        gyration: 1.75,
+        segments: [
+          { x1: 0, x2: 4 / 9, t1: 0, t2: 2000 },
+          { x1: 4 / 9, x2: 1, t1: 2000, t2: 0 },
+          { x1: 1, x2: 13 / 9, t1: 0, t2: 1500 },
+          { x1: 13 / 9, x2: 2, t1: 1500, t2: 0 },
+        ],
+      },
+      slide30: {
+        systemType: 2,
+        xUnit: 'sec',
+        energyMode: 'find_idle',
+        givenTmean: 50,
+        idleTorque: 0,
+        speedMode: 'mean',
+        rpm: 300,
+        targetMode: 'alpha',
+        inertia: 10,
+        iOther: 0,
+        segments: [
+          { x1: 0, x2: 0.2, t1: 150, t2: 150 },
+          { x1: 0.2, x2: 0.5, t1: 150, t2: 50 },
+          { x1: 0.5, x2: 0.8, t1: 50, t2: 150 },
+          { x1: 0.8, x2: 1.0, t1: 150, t2: 150 },
+        ],
+      },
+      slide34: {
+        systemType: 2,
+        xUnit: 'sec',
+        energyMode: 'find_tmean',
+        speedMode: 'minmax',
+        nMax: 385,
+        nMin: 315,
+        targetMode: 'both_minmax',
+        iOther: 0.432,
+        density: 7250,
+        rtRatio: 1, // d = 2t => r = t => r/t = 1
+        segments: [
+          { x1: 0, x2: 0.2, t1: 60, t2: 60 },
+          { x1: 0.2, x2: 0.3, t1: 60, t2: 80 },
+          { x1: 0.3, x2: 0.4, t1: 80, t2: 60 },
+          { x1: 0.4, x2: 0.6, t1: 60, t2: 60 },
+          { x1: 0.6, x2: 0.8, t1: 60, t2: 100 },
+          { x1: 0.8, x2: 1.0, t1: 100, t2: 60 },
+        ],
+      },
+      slide35: {
+        systemType: 2,
+        xUnit: 'sec',
+        energyMode: 'find_tmean',
+        speedMode: 'mean',
+        rpm: 600,
+        targetMode: 'inertia',
+        alphaPct: 2.0,
+        iOther: 0,
+        segments: [
+          { x1: 0, x2: 2, t1: 100, t2: 200 },
+          { x1: 2, x2: 4, t1: 200, t2: 100 },
+          { x1: 4, x2: 6, t1: 100, t2: 100 },
+        ],
+      },
+      slide36: {
+        systemType: 1,
+        xUnit: 'sec',
+        energyMode: 'find_tmean',
+        speedMode: 'mean',
+        rpm: 300,
+        targetMode: 'alpha',
+        inertia: 90,
+        iOther: 0,
+        segments: [
+          { x1: 0, x2: 2, t1: -20, t2: -20 },
+          { x1: 2, x2: 4, t1: 0, t2: 400 },
+          { x1: 4, x2: 6, t1: -30, t2: -30 },
+          { x1: 6, x2: 8, t1: 250, t2: 250 },
+          { x1: 8, x2: 10, t1: -20, t2: -20 },
+        ],
+      },
+      slide38: {
+        systemType: 1,
+        xUnit: 'sec',
+        energyMode: 'find_tmean',
+        speedMode: 'minmax',
+        nMax: 505,
+        nMin: 495,
+        targetMode: 'both_minmax',
+        iOther: 0,
+        density: 8500,
+        rtRatio: 4,
+        segments: [
+          { x1: 0, x2: 0.2, t1: -10, t2: -10 },
+          { x1: 0.2, x2: 0.4, t1: 55, t2: 55 },
+          { x1: 0.4, x2: 0.5, t1: -20, t2: -20 },
+          { x1: 0.5, x2: 0.8, t1: 0, t2: 60 },
+        ],
+      },
+      slide39: {
+        systemType: 2,
+        xUnit: 'sec',
+        energyMode: 'find_idle',
+        givenTmean: 25,
+        idleTorque: 20,
+        speedMode: 'mean',
+        rpm: 500,
+        targetMode: 'alpha',
+        inertia: 3,
+        iOther: 0,
+        segments: [
+          { x1: 0, x2: 0.2, t1: 20, t2: 120 },
+          { x1: 0.2, x2: 0.3, t1: 20, t2: 20 },
+          { x1: 0.3, x2: 0.5, t1: -15, t2: -15 },
+        ],
+      },
+    };
+
+    function loadPreset(key) {
+      const p = SLIDE_PRESETS[key];
+      if (!p) return;
+
+      document.getElementById('sol-type').value = String(p.systemType);
+      document.getElementById('sol-xaxis').value = p.xUnit;
+      document.getElementById('sol-energy-mode').value = p.energyMode;
+      if (p.givenTmean !== undefined) document.getElementById('sol-given-tmean').value = p.givenTmean;
+      if (p.idleTorque !== undefined) document.getElementById('sol-idle-torque').value = p.idleTorque;
+
+      document.getElementById('sol-speed-mode').value = p.speedMode;
+      if (p.rpm !== undefined) document.getElementById('sol-rpm').value = p.rpm;
+      if (p.nMax !== undefined) document.getElementById('sol-nmax').value = p.nMax;
+      if (p.nMin !== undefined) document.getElementById('sol-nmin').value = p.nMin;
+
+      document.getElementById('sol-target-mode').value = p.targetMode;
+      if (p.inertia !== undefined) document.getElementById('sol-inertia').value = p.inertia;
+      if (p.alphaPct !== undefined) document.getElementById('sol-alpha-pct').value = p.alphaPct;
+
+      document.getElementById('sol-i-other').value = p.iOther || 0;
+      document.getElementById('sol-gyration').value = p.gyration || '';
+      document.getElementById('sol-density').value = p.density || 7250;
+      document.getElementById('sol-rt-ratio').value = p.rtRatio || 1;
+
+      solverSegments = p.segments.map((s) => ({ ...s }));
+      onXAxisUnitChange(false);
+      onEnergyModeChange(false);
+      onSpeedModeChange(false);
+      onTargetModeChange(false);
+      renderSegmentsTable();
+      solveCustomProblem();
+    }
+
+    function onXAxisUnitChange(recalc = true) {
+      const unit = document.getElementById('sol-xaxis').value;
+      const th1 = document.getElementById('th-x1');
+      const th2 = document.getElementById('th-x2');
+      if (unit === 'pi') {
+        th1.innerHTML = 'θ<sub>start</sub> (π)';
+        th2.innerHTML = 'θ<sub>end</sub> (π)';
+      } else if (unit === 'rad') {
+        th1.innerHTML = 'θ<sub>start</sub> (rad)';
+        th2.innerHTML = 'θ<sub>end</sub> (rad)';
+      } else {
+        th1.innerHTML = 't<sub>start</sub> (s)';
+        th2.innerHTML = 't<sub>end</sub> (s)';
+      }
+      if (recalc) solveCustomProblem();
+    }
+
+    function onEnergyModeChange(recalc = true) {
+      const mode = document.getElementById('sol-energy-mode').value;
+      const box = document.getElementById('sol-given-tmean-box');
+      if (mode === 'find_idle') {
+        box.classList.remove('hidden');
+        box.classList.add('grid');
+      } else {
+        box.classList.add('hidden');
+        box.classList.remove('grid');
+      }
+      if (recalc) solveCustomProblem();
+    }
+
+    function onSpeedModeChange(recalc = true) {
+      const mode = document.getElementById('sol-speed-mode').value;
+      const singleBox = document.getElementById('sol-rpm-single-box');
+      const minmaxBox = document.getElementById('sol-rpm-minmax-box');
+      if (mode === 'minmax') {
+        singleBox.classList.add('hidden');
+        minmaxBox.classList.remove('hidden');
+        minmaxBox.classList.add('grid');
+      } else {
+        singleBox.classList.remove('hidden');
+        minmaxBox.classList.add('hidden');
+        minmaxBox.classList.remove('grid');
+      }
+      if (recalc) solveCustomProblem();
+    }
+
+    function onTargetModeChange(recalc = true) {
+      const mode = document.getElementById('sol-target-mode').value;
+      const iBox = document.getElementById('sol-input-inertia-box');
+      const aBox = document.getElementById('sol-input-alpha-box');
+      if (mode === 'alpha') {
+        iBox.classList.remove('hidden');
+        aBox.classList.add('hidden');
+      } else if (mode === 'inertia') {
+        iBox.classList.add('hidden');
+        aBox.classList.remove('hidden');
+      } else {
+        iBox.classList.add('hidden');
+        aBox.classList.add('hidden');
+      }
+      if (recalc) solveCustomProblem();
+    }
+
+    function renderSegmentsTable() {
+      const tbody = document.getElementById('segments-tbody');
+      tbody.innerHTML = solverSegments
+        .map(
+          (seg, idx) => `
+          <tr class="hover:bg-slate-50">
+            <td class="py-1.5 px-2.5 text-slate-400 font-semibold">${idx + 1}</td>
+            <td class="py-1.5 px-1.5"><input type="number" step="any" value="${Number(seg.x1.toFixed(4))}" onchange="updateSegment(${idx}, 'x1', this.value)" class="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-800" /></td>
+            <td class="py-1.5 px-1.5"><input type="number" step="any" value="${Number(seg.x2.toFixed(4))}" onchange="updateSegment(${idx}, 'x2', this.value)" class="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-800" /></td>
+            <td class="py-1.5 px-1.5"><input type="number" step="any" value="${seg.t1}" onchange="updateSegment(${idx}, 't1', this.value)" class="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-800" /></td>
+            <td class="py-1.5 px-1.5"><input type="number" step="any" value="${seg.t2}" onchange="updateSegment(${idx}, 't2', this.value)" class="w-full px-2 py-1 rounded border border-slate-200 bg-white text-slate-800" /></td>
+            <td class="py-1.5 px-2 text-center">
+              <button onclick="removeSegment(${idx})" class="text-rose-500 hover:text-rose-700 font-bold px-1.5 py-0.5 rounded hover:bg-rose-50" title="Delete Segment">✕</button>
+            </td>
+          </tr>`
+        )
+        .join('');
+    }
+
+    function updateSegment(idx, field, val) {
+      solverSegments[idx][field] = Number(val);
+      solveCustomProblem();
+    }
+
+    function addSegmentRow() {
+      const last = solverSegments[solverSegments.length - 1];
+      const nextX1 = last ? last.x2 : 0;
+      const nextX2 = nextX1 + 1;
+      const nextT = last ? last.t2 : 100;
+      solverSegments.push({ x1: nextX1, x2: nextX2, t1: nextT, t2: nextT });
+      renderSegmentsTable();
+      solveCustomProblem();
+    }
+
+    function removeSegment(idx) {
+      if (solverSegments.length <= 1) return;
+      solverSegments.splice(idx, 1);
+      renderSegmentsTable();
+      solveCustomProblem();
+    }
+
+    function clearSegments() {
+      solverSegments = [{ x1: 0, x2: 2, t1: 100, t2: 100 }];
+      renderSegmentsTable();
+      solveCustomProblem();
+    }
+
+    function solveCustomProblem() {
+      const systemType = Number(document.getElementById('sol-type').value);
+      const xUnit = document.getElementById('sol-xaxis').value;
+      const energyMode = document.getElementById('sol-energy-mode').value;
+      const givenTmean = Number(document.getElementById('sol-given-tmean').value);
+      const idleTorque = Number(document.getElementById('sol-idle-torque').value);
+
+      // Speed calculations
+      const speedMode = document.getElementById('sol-speed-mode').value;
+      let nMean = 0;
+      let nMaxInput = null;
+      let nMinInput = null;
+      if (speedMode === 'minmax') {
+        nMaxInput = Number(document.getElementById('sol-nmax').value);
+        nMinInput = Number(document.getElementById('sol-nmin').value);
+        nMean = 0.5 * (nMaxInput + nMinInput);
+      } else {
+        nMean = Number(document.getElementById('sol-rpm').value);
+      }
+
+      const omegaMean = (2 * Math.PI * nMean) / 60;
+      if (omegaMean <= 0) return;
+
+      const analysis = analyzeTurningMomentDiagram({
+        systemType,
+        segments: solverSegments,
+        xUnit,
+        omegaMean,
+        energyMode,
+        givenTmean,
+        idleTorque,
+      });
+
+      latestSolverAnalysis = analysis;
+
+      const kpiGrid = document.getElementById('sol-kpi-grid');
+      const stepsBox = document.getElementById('sol-steps-container');
+
+      if (analysis.error) {
+        kpiGrid.innerHTML = `<div class="col-span-full p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">${analysis.error}</div>`;
+        stepsBox.innerHTML = '';
+        return;
+      }
+
+      drawTurningMomentChart('solCanvas', analysis, null, solverHoverX);
+
+      // Step 6: Compute α, I, N_max, N_min, Power, Dimensions
+      const targetMode = document.getElementById('sol-target-mode').value;
+      let alpha = 0;
+      let totalInertia = 0;
+      let nMax = 0;
+      let nMin = 0;
+
+      if (targetMode === 'alpha') {
+        totalInertia = Number(document.getElementById('sol-inertia').value);
+        alpha = totalInertia > 0 ? analysis.deltaE / (totalInertia * omegaMean * omegaMean) : 0;
+        nMax = nMean * (1 + alpha / 2);
+        nMin = nMean * (1 - alpha / 2);
+      } else if (targetMode === 'inertia') {
+        alpha = Number(document.getElementById('sol-alpha-pct').value) / 100;
+        totalInertia = alpha > 0 ? analysis.deltaE / (alpha * omegaMean * omegaMean) : 0;
+        nMax = nMean * (1 + alpha / 2);
+        nMin = nMean * (1 - alpha / 2);
+      } else {
+        // N_max and N_min given directly
+        nMax = nMaxInput || nMean;
+        nMin = nMinInput || nMean;
+        alpha = (nMax - nMin) / nMean;
+        totalInertia = alpha > 0 ? analysis.deltaE / (alpha * omegaMean * omegaMean) : 0;
+      }
+
+      const omegaMax = (2 * Math.PI * nMax) / 60;
+      const omegaMin = (2 * Math.PI * nMin) / 60;
+      const powerWatts = analysis.tMean * omegaMean;
+      const powerKW = powerWatts / 1000;
+
+      // Optional dimensions & mass
+      const iOther = Number(document.getElementById('sol-i-other').value) || 0;
+      const iFlywheel = Math.max(0, totalInertia - iOther);
+      const gyration = Number(document.getElementById('sol-gyration').value);
+      const density = Number(document.getElementById('sol-density').value) || 7250;
+      const rtRatio = Number(document.getElementById('sol-rt-ratio').value) || 1;
+
+      let dimHtml = '';
+      if (gyration > 0) {
+        const massRim = iFlywheel / (gyration * gyration);
+        dimHtml = `
+          <div class="mt-2 pt-2 border-t border-slate-200 text-slate-700 font-mono text-xs">
+            <strong>Flywheel Mass (Rim with k = ${gyration} m):</strong><br/>
+            I<sub>flywheel</sub> = I<sub>total</sub> − I<sub>other</sub> = ${totalInertia.toFixed(3)} − ${iOther.toFixed(3)} = <strong>${iFlywheel.toFixed(3)} kg·m²</strong><br/>
+            m = I<sub>flywheel</sub> / k² = ${iFlywheel.toFixed(3)} / ${gyration}² = <strong>${massRim.toFixed(2)} kg</strong>
+          </div>`;
+      } else if (iFlywheel > 0) {
+        // Solid disc: I = 0.5 * m * r^2 = 0.5 * (ρ * π * r^2 * t) * r^2
+        // Since r / t = rtRatio => t = r / rtRatio => I = (0.5 * ρ * π / rtRatio) * r^5
+        const rDisc = Math.pow((2 * iFlywheel * rtRatio) / (density * Math.PI), 0.2);
+        const dDisc = 2 * rDisc;
+        const tDisc = rDisc / rtRatio;
+        const mDisc = density * Math.PI * rDisc * rDisc * tDisc;
+        dimHtml = `
+          <div class="mt-2 pt-2 border-t border-slate-200 text-slate-700 font-mono text-xs">
+            <strong>Solid Disc Flywheel Dimensions (ρ = ${density} kg/m³, r/t = ${rtRatio}):</strong><br/>
+            I<sub>flywheel</sub> = ${iFlywheel.toFixed(3)} kg·m² &nbsp;|&nbsp; Radius r = <strong>${(rDisc * 1000).toFixed(1)} mm (${rDisc.toFixed(4)} m)</strong><br/>
+            Diameter d = <strong>${(dDisc * 1000).toFixed(1)} mm</strong> &nbsp;|&nbsp; Thickness t = <strong>${(tDisc * 1000).toFixed(1)} mm</strong> &nbsp;|&nbsp; Mass m = <strong>${mDisc.toFixed(2)} kg</strong>
+          </div>`;
+      }
+
+      // Products per hour if xUnit === 'sec' and Type 2
+      let productsCard = '';
+      if (xUnit === 'sec' && systemType === 2) {
+        const cycleSec = analysis.cycleEndX - analysis.cycleStartX;
+        const productsPerHour = cycleSec > 0 ? 3600 / cycleSec : 0;
+        productsCard = `
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <div class="text-[11px] font-semibold text-amber-800">Production Rate</div>
+            <div class="text-sm sm:text-base font-mono font-bold text-amber-950">${productsPerHour.toFixed(0)} / hr</div>
+            <div class="text-[11px] font-mono text-amber-700">1 cycle = ${cycleSec.toFixed(2)} s</div>
+          </div>`;
+      }
+
+      // Render KPI Summary Cards
+      kpiGrid.innerHTML = `
+        <div class="p-3 rounded-xl bg-blue-50 border border-blue-200">
+          <div class="text-[11px] font-semibold text-blue-700">Mean Torque & Power</div>
+          <div class="text-sm sm:text-base font-mono font-bold text-blue-950">${analysis.tMean.toFixed(2)} N·m</div>
+          <div class="text-[11px] font-mono text-blue-700">${powerKW.toFixed(3)} kW (${powerWatts.toFixed(0)} W)</div>
+        </div>
+        <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
+          <div class="text-[11px] font-semibold text-indigo-700">Max Energy Fluctuation (ΔE)</div>
+          <div class="text-sm sm:text-base font-mono font-bold text-indigo-950">${analysis.deltaE.toFixed(2)} J</div>
+          <div class="text-[11px] font-mono text-indigo-700">β = ${(analysis.beta * 100).toFixed(2)}%</div>
+        </div>
+        <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+          <div class="text-[11px] font-semibold text-emerald-700">Fluctuation α & Inertia I</div>
+          <div class="text-sm sm:text-base font-mono font-bold text-emerald-950">α = ${(alpha * 100).toFixed(3)}%</div>
+          <div class="text-[11px] font-mono text-emerald-700">I<sub>total</sub> = ${totalInertia.toFixed(3)} kg·m²</div>
+        </div>
+        ${
+          productsCard ||
+          `<div class="p-3 rounded-xl bg-slate-100 border border-slate-200">
+            <div class="text-[11px] font-semibold text-slate-600">Speed Range (N<sub>min</sub>–N<sub>max</sub>)</div>
+            <div class="text-xs sm:text-sm font-mono font-bold text-slate-900">${nMin.toFixed(1)} – ${nMax.toFixed(1)} rpm</div>
+            <div class="text-[11px] font-mono text-slate-500">${omegaMin.toFixed(2)} – ${omegaMax.toFixed(2)} rad/s</div>
+          </div>`
+        }
+      `;
+
+      // Render 6-Step Solution Breakdown
+      const unitLabel = xUnit === 'pi' ? 'π rad' : xUnit === 'sec' ? 's' : 'rad';
+      const loopRowsHtml = analysis.loops
+        .map(
+          (lp) => `
+          <tr class="border-b border-slate-100">
+            <td class="py-1.5 px-2 font-bold ${lp.isPositive ? 'text-emerald-700' : 'text-rose-700'}">${lp.isPositive ? '+' : '−'}${lp.name}</td>
+            <td class="py-1.5 px-2">${lp.x1.toFixed(3)}${xUnit === 'pi' ? 'π' : ''} → ${lp.x2.toFixed(3)}${xUnit === 'pi' ? 'π' : ''}</td>
+            <td class="py-1.5 px-2">${lp.isPositive ? 'Absorbs Energy (Speeds up)' : 'Releases Energy (Slows down)'}</td>
+            <td class="py-1.5 px-2 font-bold ${lp.isPositive ? 'text-emerald-700' : 'text-rose-700'}">${lp.energyJ >= 0 ? '+' : ''}${lp.energyJ.toFixed(2)} J</td>
+          </tr>`
+        )
+        .join('');
+
+      const milestoneListHtml = analysis.milestones
+        .map((m) => {
+          const isMax = m.point === analysis.maxPt.point;
+          const isMin = m.point === analysis.minPt.point;
+          return `<div class="flex flex-wrap items-center justify-between py-1 px-2.5 rounded-lg ${
+            isMax ? 'bg-emerald-50 border border-emerald-200 font-bold text-emerald-900' : isMin ? 'bg-rose-50 border border-rose-200 font-bold text-rose-900' : 'bg-slate-50'
+          }">
+            <span>Point <strong>${m.point}</strong> (at ${m.x.toFixed(3)}${xUnit === 'pi' ? 'π' : unitLabel}): &nbsp; E<sub>${m.point}</sub> = ${m.expr}</span>
+            <span>= U ${m.deltaU >= 0 ? '+' : '−'} ${Math.abs(m.deltaU).toFixed(2)} J ${isMax ? '← E_max (ω_max)' : isMin ? '← E_min (ω_min)' : ''}</span>
+          </div>`;
+        })
+        .join('');
+
+      stepsBox.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+          <div class="font-bold text-slate-900">Step 1 & 2: Identify System Type, 1 Cycle & X-Axis Conversion</div>
+          <p class="text-slate-700 font-mono text-xs">
+            • System: <strong>Type ${systemType} (${systemType === 1 ? 'Variable Input → Constant Load' : 'Constant Input → Variable Load'})</strong><br/>
+            • Mean Angular Velocity: ω<sub>mean</sub> = 2π(${nMean}) / 60 = <strong>${omegaMean.toFixed(3)} rad/s</strong><br/>
+            • 1 Complete Cycle: ${analysis.cycleStartX.toFixed(3)} to ${analysis.cycleEndX.toFixed(3)} ${unitLabel} &nbsp;⇒&nbsp; θ<sub>cycle</sub> = <strong>${analysis.totalCycleAngleRad.toFixed(3)} rad</strong>
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+          <div class="font-bold text-slate-900">Step 3: Conservation of Energy (Input Energy = Output Energy)</div>
+          <p class="text-slate-700 font-mono text-xs">
+            ${
+              analysis.solvedIdleDurationX !== null
+                ? `• Given T<sub>mean</sub> = ${analysis.tMean.toFixed(2)} N·m, Idle Torque = ${idleTorque} N·m<br/>
+                   • Solved Unknown Idle Duration: <strong>Δt (or Δθ) = ${analysis.solvedIdleDurationX.toFixed(3)} ${unitLabel}</strong><br/>`
+                : `• Mean Torque: T<sub>mean</sub> = Work per cycle / θ<sub>cycle</sub> = ${analysis.workPerCycleJ.toFixed(2)} / ${analysis.totalCycleAngleRad.toFixed(3)} = <strong>${analysis.tMean.toFixed(2)} N·m</strong><br/>`
+            }
+            • Work Done per Cycle: E = T<sub>mean</sub> · θ<sub>cycle</sub> = <strong>${analysis.workPerCycleJ.toFixed(2)} J</strong><br/>
+            • Mean Power: P = T<sub>mean</sub> · ω<sub>mean</sub> = ${analysis.tMean.toFixed(2)} × ${omegaMean.toFixed(3)} = <strong>${powerWatts.toFixed(2)} W (${powerKW.toFixed(3)} kW)</strong>
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-900">Step 4: Superimposed Diagram Loops (Areas Above & Below T<sub>mean</sub>)</div>
+          <div class="overflow-x-auto border border-slate-200 rounded-lg bg-white">
+            <table class="w-full text-left border-collapse font-mono text-xs">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                  <th class="py-1.5 px-2">Loop</th>
+                  <th class="py-1.5 px-2">Interval</th>
+                  <th class="py-1.5 px-2">Flywheel Action</th>
+                  <th class="py-1.5 px-2">Energy ΔE (Joules)</th>
+                </tr>
+              </thead>
+              <tbody>${loopRowsHtml}</tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-900">Step 5: Cumulative Flywheel Energy at Intersection Points</div>
+          <div class="space-y-1 font-mono text-xs">${milestoneListHtml}</div>
+          <div class="pt-1 font-mono text-xs text-indigo-900 font-bold">
+            ⇒ Maximum Fluctuation of Energy: ΔE = βE = E<sub>max</sub> − E<sub>min</sub> = (${analysis.maxPt.deltaU.toFixed(2)}) − (${analysis.minPt.deltaU.toFixed(2)}) = ${analysis.deltaE.toFixed(2)} J
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200 space-y-1">
+          <div class="font-bold text-blue-950">Step 6: Final Calculations (Speed Fluctuation α & Inertia I)</div>
+          <p class="text-slate-800 font-mono text-xs">
+            • Coefficient of Fluctuation of Energy: β = ΔE / E = ${analysis.deltaE.toFixed(2)} / ${analysis.workPerCycleJ.toFixed(2)} = <strong>${analysis.beta.toFixed(4)} (${(analysis.beta * 100).toFixed(2)}%)</strong><br/>
+            • Coefficient of Fluctuation of Speed: α = (ω<sub>max</sub> − ω<sub>min</sub>) / ω<sub>mean</sub> = <strong>${alpha.toFixed(5)} (${(alpha * 100).toFixed(3)}%)</strong><br/>
+            • Total Mass Moment of Inertia: I = (βE) / (α · ω<sub>mean</sub>²) = ${analysis.deltaE.toFixed(2)} / (${alpha.toFixed(5)} × ${omegaMean.toFixed(3)}²) = <strong>${totalInertia.toFixed(3)} kg·m²</strong><br/>
+            • Max Speed: N<sub>max</sub> = <strong>${nMax.toFixed(2)} rpm</strong> (${omegaMax.toFixed(2)} rad/s) &nbsp;|&nbsp; Min Speed: N<sub>min</sub> = <strong>${nMin.toFixed(2)} rpm</strong> (${omegaMin.toFixed(2)} rad/s)
+          </p>
+          ${dimHtml}
+        </div>
+      `;
+    }
+
+    function resizeSolverCanvas() {
+      setupHiDPICanvas(document.getElementById('solCanvas'));
+    }
+
+    function copySolutionText() {
+      const container = document.getElementById('sol-steps-container');
+      const text = container.innerText;
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+
+      const btn = document.getElementById('copy-sol-btn');
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => (btn.textContent = orig), 1800);
+    }
+
+    // Interactive Hover Listeners for Solver Chart
+    function initCanvasInteractions() {
+      const solCanvas = document.getElementById('solCanvas');
+      solCanvas.addEventListener('mousemove', (e) => {
+        const rect = solCanvas.getBoundingClientRect();
+        solverHoverX = e.clientX - rect.left;
+        if (latestSolverAnalysis && !latestSolverAnalysis.error) {
+          drawTurningMomentChart('solCanvas', latestSolverAnalysis, null, solverHoverX);
+        }
+      });
+      solCanvas.addEventListener('mouseleave', () => {
+        solverHoverX = null;
+        if (latestSolverAnalysis && !latestSolverAnalysis.error) {
+          drawTurningMomentChart('solCanvas', latestSolverAnalysis, null, null);
+        }
+      });
+      solCanvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          const rect = solCanvas.getBoundingClientRect();
+          solverHoverX = e.touches[0].clientX - rect.left;
+          if (latestSolverAnalysis && !latestSolverAnalysis.error) {
+            drawTurningMomentChart('solCanvas', latestSolverAnalysis, null, solverHoverX);
+          }
+        }
+      }, { passive: true });
+    }
+
+    // =========================================================================
+    // 5. INITIALIZATION ON WINDOW LOAD
+    // =========================================================================
+    window.addEventListener('resize', () => {
+      if (!document.getElementById('view-sim').classList.contains('hidden')) {
+        resizeSimCanvases();
+        renderSimulator();
+      }
+      if (!document.getElementById('view-solver').classList.contains('hidden')) {
+        resizeSolverCanvas();
+        if (latestSolverAnalysis && !latestSolverAnalysis.error) {
+          drawTurningMomentChart('solCanvas', latestSolverAnalysis, null, solverHoverX);
+        }
+      }
+    });
+
+    window.onload = function () {
+      initCanvasInteractions();
+      setSimMode(1);
+      loadPreset('slide24');
+      simState.lastTime = performance.now();
+      requestAnimationFrame(simLoop);
+    };
+  </script>
+</body>
+</html>
