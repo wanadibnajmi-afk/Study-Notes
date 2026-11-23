@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>8-BIT STUDY HUB // QUEST LOG</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0c10'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23141622' stroke='%2300f0ff' stroke-width='1.5'/%3E%3Cpath d='M5 5h6v2H7v2h3v2H7v2H5V5z' fill='%2339ff14'/%3E%3C/svg%3E" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0c10'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23141622' stroke='%2300f0ff' stroke-width='1.5'/%3E%3Cpath d='M5 5h6v2H7v2h3v2H7v2H5V5z' fill='%2339ff14'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -21,11 +23,7 @@
       --border: #2e344e;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -38,31 +36,19 @@
       font-size: 1.25rem;
       line-height: 1.4;
       padding: 20px 14px 60px;
-      position: relative;
     }
 
-    /* Subtle CRT scanline effect */
     body::after {
       content: "";
       position: fixed;
       inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.14),
-        rgba(0, 0, 0, 0.14) 1px,
-        transparent 1px,
-        transparent 3px
-      );
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.14), rgba(0,0,0,0.14) 1px, transparent 1px, transparent 3px);
       pointer-events: none;
       z-index: 999;
     }
 
-    .container {
-      max-width: 1080px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1120px; margin: 0 auto; }
 
-    /* Pixel Panel Helper */
     .pixel-box {
       background: var(--panel);
       border: 3px solid var(--border);
@@ -83,24 +69,16 @@
 
     .hud-title h1 {
       font-family: 'Press Start 2P', monospace;
-      font-size: clamp(1rem, 2.8vw, 1.45rem);
+      font-size: clamp(1rem, 2.6vw, 1.4rem);
       color: var(--cyan);
       text-shadow: 3px 3px 0px #004455;
       line-height: 1.5;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
-    .hud-sub {
-      color: var(--green);
-      font-size: 1.2rem;
-      letter-spacing: 1px;
-    }
+    .hud-sub { color: var(--green); font-size: 1.2rem; }
 
-    .hud-stats {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .hud-stats { display: flex; gap: 12px; flex-wrap: wrap; }
 
     .stat-badge {
       background: var(--panel-alt);
@@ -112,7 +90,7 @@
       box-shadow: 3px 3px 0 #000;
     }
 
-    /* Layout Grid: Main Notes + Calendar Sidebar */
+    /* Layout Grid */
     .main-layout {
       display: grid;
       grid-template-columns: 1.45fr 1fr;
@@ -120,10 +98,8 @@
       align-items: start;
     }
 
-    @media (max-width: 840px) {
-      .main-layout {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 860px) {
+      .main-layout { grid-template-columns: 1fr; }
     }
 
     .section-header {
@@ -131,13 +107,10 @@
       font-size: 0.85rem;
       color: var(--gold);
       margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
       text-shadow: 2px 2px 0 #000;
     }
 
-    /* Folder Tabs */
+    /* Course Folder Tabs */
     .folder-bar {
       display: flex;
       flex-wrap: wrap;
@@ -147,19 +120,13 @@
 
     .folder-btn {
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.62rem;
+      font-size: 0.58rem;
       background: var(--panel-alt);
       color: var(--muted);
       border: 2px solid var(--border);
-      padding: 10px 12px;
+      padding: 9px 10px;
       cursor: pointer;
       box-shadow: 3px 3px 0 #000;
-      transition: transform 0.1s;
-    }
-
-    .folder-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 #000;
     }
 
     .folder-btn.active {
@@ -168,7 +135,6 @@
       border-color: #fff;
     }
 
-    /* Search Input */
     .pixel-input {
       width: 100%;
       background: #08090d;
@@ -179,10 +145,6 @@
       padding: 10px 12px;
       margin-bottom: 18px;
       outline: none;
-    }
-
-    .pixel-input::placeholder {
-      color: #4a5568;
     }
 
     /* Quest Cards Grid */
@@ -201,7 +163,6 @@
       color: var(--text);
       box-shadow: 4px 4px 0 #000;
       transition: transform 0.1s, border-color 0.1s;
-      position: relative;
     }
 
     .quest-card:hover {
@@ -213,7 +174,7 @@
     .quest-tag {
       display: inline-block;
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.55rem;
+      font-size: 0.52rem;
       background: #08090d;
       color: var(--cyan);
       border: 1px solid var(--cyan);
@@ -223,26 +184,16 @@
 
     .quest-card h3 {
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: #fff;
       line-height: 1.5;
       margin-bottom: 8px;
     }
 
-    .quest-card p {
-      color: var(--muted);
-      font-size: 1.15rem;
-    }
-
-    .quest-card.locked {
-      opacity: 0.65;
-      border-style: dashed;
-    }
+    .quest-card p { color: var(--muted); font-size: 1.15rem; }
 
     /* Calendar Styling */
-    .cal-box {
-      border-color: var(--magenta);
-    }
+    .cal-box { border-color: var(--magenta); }
 
     .cal-nav {
       display: flex;
@@ -270,391 +221,4 @@
       color: #fff;
     }
 
-    .cal-weekdays, .cal-days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      text-align: center;
-    }
-
-    .cal-weekdays div {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.52rem;
-      color: var(--cyan);
-      padding: 6px 0;
-    }
-
-    .cal-day {
-      background: var(--panel-alt);
-      border: 2px solid var(--border);
-      padding: 8px 2px;
-      cursor: pointer;
-      position: relative;
-      font-size: 1.2rem;
-      user-select: none;
-    }
-
-    .cal-day:hover {
-      border-color: var(--cyan);
-    }
-
-    .cal-day.empty {
-      background: transparent;
-      border-color: transparent;
-      cursor: default;
-    }
-
-    .cal-day.today {
-      border-color: var(--green);
-      color: var(--green);
-      font-weight: bold;
-    }
-
-    .cal-day.selected {
-      background: #2b193d;
-      border-color: var(--magenta);
-    }
-
-    .cal-day.has-event::after {
-      content: "";
-      width: 6px;
-      height: 6px;
-      background: var(--magenta);
-      box-shadow: 0 0 6px var(--magenta);
-      position: absolute;
-      bottom: 3px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    /* Add Event Form */
-    .event-form {
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 2px dashed var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .event-form input, .event-form select {
-      background: #08090d;
-      border: 2px solid var(--border);
-      color: #fff;
-      font-family: 'VT323', monospace;
-      font-size: 1.15rem;
-      padding: 7px 10px;
-      width: 100%;
-    }
-
-    .add-btn {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.65rem;
-      background: var(--green);
-      color: #000;
-      border: 2px solid #fff;
-      padding: 11px;
-      cursor: pointer;
-      box-shadow: 3px 3px 0 #000;
-      margin-top: 4px;
-    }
-
-    .add-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 1px 1px 0 #000;
-    }
-
-    /* Upcoming Events List */
-    .event-list {
-      margin-top: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 260px;
-      overflow-y: auto;
-    }
-
-    .event-item {
-      background: #08090d;
-      border-left: 4px solid var(--magenta);
-      border-top: 1px solid var(--border);
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .event-meta {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.52rem;
-      color: var(--gold);
-      margin-bottom: 4px;
-    }
-
-    .event-title {
-      font-size: 1.2rem;
-      color: #fff;
-    }
-
-    .del-btn {
-      background: transparent;
-      border: 1px solid var(--magenta);
-      color: var(--magenta);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.55rem;
-      padding: 5px 7px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- TOP HUD -->
-    <header class="pixel-box hud">
-      <div class="hud-title">
-        <h1>PLAYER 1 // STUDY HUB</h1>
-        <div class="hud-sub">&gt; SELECT A COURSE FOLDER TO LAUNCH SIMULATOR_</div>
-      </div>
-      <div class="hud-stats">
-        <div class="stat-badge" id="questCount">NOTES: 1</div>
-        <div class="stat-badge" id="bossCount">TESTS: 0</div>
-      </div>
-    </header>
-
-    <div class="main-layout">
-      <!-- LEFT COLUMN: COURSE FOLDERS & INTERACTIVE NOTES -->
-      <section class="pixel-box">
-        <div class="section-header">📁 COURSE FOLDERS</div>
-
-        <div class="folder-bar" id="folderBar">
-          <button class="folder-btn active" data-folder="all" onclick="selectFolder('all', this)">ALL FILES</button>
-          <button class="folder-btn" data-folder="semm2223" onclick="selectFolder('semm2223', this)">SEMM2223</button>
-          <button class="folder-btn" data-folder="thermo" onclick="selectFolder('thermo', this)">THERMO</button>
-          <button class="folder-btn" data-folder="fluids" onclick="selectFolder('fluids', this)">FLUIDS</button>
-          <button class="folder-btn" data-folder="control" onclick="selectFolder('control', this)">CONTROL</button>
-        </div>
-
-        <input type="text" class="pixel-input" id="searchInput" placeholder="> Search topic or keyword..." onkeyup="filterQuests()" />
-
-        <div class="quest-grid" id="questGrid">
-          <!-- NOTE 1: YOUR VIBRATION SIMULATOR -->
-          <a href="topic8-vibration.html" class="quest-card" data-folder="semm2223">
-            <span class="quest-tag">SEMM2223 • TOPIC 8</span>
-            <h3>1DOF &amp; 2DOF VIBRATION</h3>
-            <p>Free undamped vs. damped graphs, mode shapes, and equivalent system solver.</p>
-          </a>
-
-          <!-- PLACEHOLDER CARDS (Edit href & title when you upload more HTML notes) -->
-          <a href="#" class="quest-card locked" data-folder="semm2223" onclick="alert('Upload your next HTML file to GitHub and update this card link!')">
-            <span class="quest-tag">SEMM2223 • TOPIC 7</span>
-            <h3>ROTOR BALANCING</h3>
-            <p>[LOCKED] Add your static &amp; dynamic unbalance interactive note here.</p>
-          </a>
-
-          <a href="#" class="quest-card locked" data-folder="thermo" onclick="alert('Upload your Thermodynamics HTML file to GitHub and update this link!')">
-            <span class="quest-tag">THERMO • CHAPTER 4</span>
-            <h3>RANKINE &amp; BRAYTON</h3>
-            <p>[LOCKED] Add your T-s diagram cycle simulator note here.</p>
-          </a>
-
-          <a href="#" class="quest-card locked" data-folder="fluids" onclick="alert('Upload your Fluid Mechanics HTML file to GitHub and update this link!')">
-            <span class="quest-tag">FLUIDS • TOPIC 5</span>
-            <h3>PIPE FLOW &amp; LOSSES</h3>
-            <p>[LOCKED] Add your Reynolds number &amp; Moody chart note here.</p>
-          </a>
-        </div>
-      </section>
-
-      <!-- RIGHT COLUMN: 8-BIT TEST & DEADLINE CALENDAR -->
-      <aside class="pixel-box cal-box">
-        <div class="section-header" style="color: var(--magenta);">⚔️ TEST &amp; EXAM LOG</div>
-
-        <div class="cal-nav">
-          <button onclick="changeMonth(-1)">&lt;</button>
-          <span class="cal-month-label" id="calMonthLabel">MONTH YEAR</span>
-          <button onclick="changeMonth(1)">&gt;</button>
-        </div>
-
-        <div class="cal-weekdays">
-          <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
-        </div>
-        <div class="cal-days" id="calDays"></div>
-
-        <!-- ADD NEW TEST / DEADLINE -->
-        <div class="event-form">
-          <div class="form-row">
-            <input type="date" id="eventDate" />
-            <select id="eventCourse">
-              <option value="SEMM2223">SEMM2223</option>
-              <option value="THERMO">THERMO</option>
-              <option value="FLUIDS">FLUIDS</option>
-              <option value="CONTROL">CONTROL</option>
-              <option value="OTHER">OTHER</option>
-            </select>
-          </div>
-          <input type="text" id="eventTitle" placeholder="e.g., Test 2: Free &amp; Forced Vibration" />
-          <button class="add-btn" onclick="addEvent()">+ SAVE TO CALENDAR</button>
-        </div>
-
-        <!-- LIST OF SAVED TESTS -->
-        <div class="event-list" id="eventList"></div>
-      </aside>
-    </div>
-  </div>
-
-  <script>
-    // --- FOLDER & SEARCH FILTERING ---
-    let activeFolder = 'all';
-
-    function selectFolder(folder, btn) {
-      activeFolder = folder;
-      document.querySelectorAll('.folder-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filterQuests();
-    }
-
-    function filterQuests() {
-      const q = document.getElementById('searchInput').value.toLowerCase();
-      let unlockedCount = 0;
-      document.querySelectorAll('.quest-card').forEach(card => {
-        const folderMatch = activeFolder === 'all' || card.dataset.folder === activeFolder;
-        const textMatch = card.innerText.toLowerCase().includes(q);
-        card.style.display = (folderMatch && textMatch) ? 'block' : 'none';
-        if (!card.classList.contains('locked')) unlockedCount++;
-      });
-      document.getElementById('questCount').textContent = `NOTES: ${unlockedCount}`;
-    }
-
-    // --- 8-BIT CALENDAR & LOCALSTORAGE ---
-    let currentDate = new Date();
-    let selectedDateStr = formatDateISO(new Date());
-
-    // Load saved events or set a starter example
-    let events = JSON.parse(localStorage.getItem('studyHub8BitEvents')) || [
-      { id: 1, date: formatDateISO(new Date(Date.now() + 5 * 86400000)), course: 'SEMM2223', title: 'Test 2: 1DOF & 2DOF Vibration' }
-    ];
-
-    document.getElementById('eventDate').value = selectedDateStr;
-
-    function formatDateISO(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-
-    function saveEvents() {
-      localStorage.setItem('studyHub8BitEvents', JSON.stringify(events));
-      renderCalendar();
-      renderEventList();
-    }
-
-    function changeMonth(delta) {
-      currentDate.setMonth(currentDate.getMonth() + delta);
-      renderCalendar();
-    }
-
-    function renderCalendar() {
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-      document.getElementById('calMonthLabel').textContent = `${monthNames[month]} ${year}`;
-
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const todayStr = formatDateISO(new Date());
-
-      const grid = document.getElementById('calDays');
-      grid.innerHTML = '';
-
-      for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement('div');
-        empty.className = 'cal-day empty';
-        grid.appendChild(empty);
-      }
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const cell = document.createElement('div');
-        cell.className = 'cal-day';
-        cell.textContent = d;
-
-        if (dateStr === todayStr) cell.classList.add('today');
-        if (dateStr === selectedDateStr) cell.classList.add('selected');
-        if (events.some(ev => ev.date === dateStr)) cell.classList.add('has-event');
-
-        cell.onclick = () => {
-          selectedDateStr = dateStr;
-          document.getElementById('eventDate').value = dateStr;
-          renderCalendar();
-        };
-        grid.appendChild(cell);
-      }
-    }
-
-    function addEvent() {
-      const date = document.getElementById('eventDate').value;
-      const course = document.getElementById('eventCourse').value;
-      const title = document.getElementById('eventTitle').value.trim();
-      if (!date || !title) {
-        alert('Please pick a date and enter a test/task title!');
-        return;
-      }
-      events.push({ id: Date.now(), date, course, title });
-      document.getElementById('eventTitle').value = '';
-      saveEvents();
-    }
-
-    function deleteEvent(id) {
-      events = events.filter(ev => ev.id !== id);
-      saveEvents();
-    }
-
-    function renderEventList() {
-      const list = document.getElementById('eventList');
-      list.innerHTML = '';
-      const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date));
-      document.getElementById('bossCount').textContent = `TESTS: ${sorted.length}`;
-
-      if (sorted.length === 0) {
-        list.innerHTML = '<div style="color: var(--muted); text-align:center; padding:10px;">No upcoming tests logged.</div>';
-        return;
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      sorted.forEach(ev => {
-        const evDate = new Date(ev.date + 'T00:00:00');
-        const diffDays = Math.round((evDate - today) / 86400000);
-        let badge = diffDays === 0 ? 'TODAY!' : (diffDays > 0 ? `IN ${diffDays}D` : 'PAST');
-
-        const item = document.createElement('div');
-        item.className = 'event-item';
-        item.innerHTML = `
-          <div>
-            <div class="event-meta">[${ev.course}] ${ev.date} • ${badge}</div>
-            <div class="event-title">${ev.title}</div>
-          </div>
-          <button class="del-btn" onclick="deleteEvent(${ev.id})">X</button>
-        `;
-        list.appendChild(item);
-      });
-    }
-
-    // Initialize
-    filterQuests();
-    renderCalendar();
-    renderEventList();
-  </script>
-</body>
-</html>
+    .cal-weekdays, .
