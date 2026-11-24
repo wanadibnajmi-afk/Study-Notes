@@ -1,0 +1,1838 @@
+```react
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  CheckCircle2,
+  AlertTriangle,
+  Sliders,
+  Compass,
+  Activity,
+  BookOpen,
+  Settings2,
+  Layers,
+  Info,
+  Gauge,
+  RefreshCw
+} from 'lucide-react';
+
+// Helper: Convert degrees to radians
+const deg2rad = (deg) => (deg * Math.PI) / 180;
+// Helper: Convert radians to degrees normalized [0, 360)
+const rad2deg = (rad) => {
+  let d = (rad * 180) / Math.PI;
+  d = d % 360;
+  if (d < 0) d += 360;
+  return d;
+};
+
+// Normalize any angle to [0, 360)
+const normDeg = (deg) => {
+  let d = deg % 360;
+  if (d < 0) d += 360;
+  return d;
+};
+
+/**
+ * Vector calculation helper
+ * Convention matching UTM Mechanics of Machines notes:
+ * 0° = Vertical Up (TDC of Cylinder 1)
+ * 90° = Horizontal Right (Clockwise positive)
+ * 180° = Vertical Down
+ * 270° = Horizontal Left
+ *
+ * Therefore:
+ * Fx (Right +) = F * sin(angle)
+ * Fy (Up +)    = F * cos(angle)
+ */
+const polarToCart = (mag, angleDeg) => {
+  const rad = deg2rad(angleDeg);
+  return {
+    x: mag * Math.sin(rad),
+    y: mag * Math.cos(rad)
+  };
+};
+
+const cartToPolar = (x, y) => {
+  const mag = Math.hypot(x, y);
+  if (mag < 1e-6) return { mag: 0, angle: 0 };
+  const angle = rad2deg(Math.atan2(x, y)); // atan2(sin, cos) -> angle clockwise from vertical UP
+  return { mag, angle };
+};
+
+// Preset configurations directly from the UTM SEMM2223 Lecture Notes
+const PRESETS = [
+  {
+    id: 'radial-3',
+    name: 'Radial 3-Cyl (Note p.50)',
+    badge: 'Radial • Unbalanced F_PD & F_SR',
+    engineType: 'radial',
+    numCylinders: 3,
+    evenSpacing: true,
+    customCylAngles: [0, 120, 240],
+    crankAngle: 0,
+    mass: 2.0,
+    radius: 0.06, // stroke = 0.12 m -> r = 0.06 m
+    conRod: 0.18, // n = 3
+    speedValue: 2000,
+    speedUnit: 'rpm',
+    forceOverrideMode: false,
+    customPrimaryForce: 5263.8
+  },
+  {
+    id: 'radial-4',
+    name: 'Radial 4-Cyl (Note p.65/68)',
+    badge: 'Radial • Ex 3.7 / Q2(b)',
+    engineType: 'radial',
+    numCylinders: 4,
+    evenSpacing: true,
+    customCylAngles: [0, 90, 180, 270],
+    crankAngle: 0,
+    mass: 1.5,
+    radius: 0.05, // stroke = 100 mm -> r = 0.05 m
+    conRod: 0.15, // n = 3
+    speedValue: 1000,
+    speedUnit: 'rpm',
+    forceOverrideMode: false,
+    customPrimaryForce: 822.5
+  },
+  {
+    id: 'radial-6',
+    name: 'Radial 6-Cyl (Note p.55)',
+    badge: 'Radial • Ex 1 (1500 rpm)',
+    engineType: 'radial',
+    numCylinders: 6,
+    evenSpacing: true,
+    customCylAngles: [0, 60, 120, 180, 240, 300],
+    crankAngle: 0,
+    mass: 1.5,
+    radius: 0.05, // stroke = 100 mm
+    conRod: 0.15, // n = 3
+    speedValue: 1500,
+    speedUnit: 'rpm',
+    forceOverrideMode: false,
+    customPrimaryForce: 1850.5
+  },
+  {
+    id: 'v8-120',
+    name: '120° V-8 Engine (Note p.58)',
+    badge: 'V-Engine • 4 Rows (0-180-180-360)',
+    engineType: 'v-engine',
+    vAngle: 120,
+    numRows: 4,
+    rowCrankOffsets: [0, 180, 180, 360],
+    rowSpacing: 0.2,
+    crankAngle: 0,
+    mass: 1.5,
+    radius: 0.05,
+    conRod: 0.10, // ratio l/r = 2
+    speedValue: 2000,
+    speedUnit: 'rpm',
+    forceOverrideMode: false,
+    customPrimaryForce: 3289.9
+  },
+  {
+    id: 'v10-120',
+    name: '120° V-10 Engine (Note p.63)',
+    badge: 'V-Engine • 5 Rows (0-180-0-180-0)',
+    engineType: 'v-engine',
+    vAngle: 120,
+    numRows: 5,
+    rowCrankOffsets: [0, 180, 0, 180, 0],
+    rowSpacing: 0.15,
+    crankAngle: 0,
+    mass: 1.2,
+    radius: 0.07, // stroke = 140 mm -> r = 0.07 m
+    conRod: 0.21, // l = 210 mm -> n = 3
+    speedValue: 2400,
+    speedUnit: 'rpm',
+    forceOverrideMode: false,
+    customPrimaryForce: 5305.9
+  }
+];
+
+/**
+ * Reusable Vector Star / Polygon Diagram Component
+ */
+const VectorDiagram = ({
+  title,
+  subtitle,
+  vectors,
+  resultant,
+  color,
+  badgeText,
+  isBalanced,
+  maxScaleForce
+}) => {
+  const size = 210;
+  const cx = size / 2;
+  const cy = size / 2;
+  const maxRadius = 74;
+
+  // Determine effective scale so vectors fit nicely inside circle
+  const effectiveMax = Math.max(
+    maxScaleForce || 1,
+    resultant.mag,
+    ...vectors.map((v) => v.mag),
+    1e-3
+  );
+
+  const scale = (mag) => (mag / effectiveMax) * maxRadius;
+
+  // Arrowhead helper
+  const renderArrow = (x1, y1, x2, y2, strokeColor, strokeWidth = 2, dashed = false, label = '') => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy);
+    if (len < 2) return null;
+
+    const angle = Math.atan2(dy, dx);
+    const headLen = Math.min(8, len * 0.35);
+    const a1 = angle - Math.PI / 6;
+    const a2 = angle + Math.PI / 6;
+
+    const hx1 = x2 - headLen * Math.cos(a1);
+    const hy1 = y2 - headLen * Math.sin(a1);
+    const hx2 = x2 - headLen * Math.cos(a2);
+    const hy2 = y2 - headLen * Math.sin(a2);
+
+    // Label slightly past tip
+    const lx = x2 + 11 * Math.cos(angle);
+    const ly = y2 + 11 * Math.sin(angle);
+
+    return (
+      <g key={`${label}-${x2.toFixed(1)}-${y2.toFixed(1)}`}>
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeDasharray={dashed ? '3,3' : undefined}
+          strokeLinecap="round"
+        />
+        <polygon
+          points={`${x2},${y2} ${hx1},${hy1} ${hx2},${hy2}`}
+          fill={strokeColor}
+        />
+        {label && (
+          <text
+            x={lx}
+            y={ly}
+            fill={strokeColor}
+            fontSize="9.5"
+            fontWeight="700"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {label}
+          </text>
+        )}
+      </g>
+    );
+  };
+
+  const resCart = polarToCart(scale(resultant.mag), resultant.angle);
+  const resX = cx + resCart.x;
+  const resY = cy - resCart.y; // SVG Y is down
+
+  return (
+    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-lg hover:border-slate-700 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div>
+          <h4 className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block"
+              style={{ backgroundColor: color }}
+            />
+            {title}
+          </h4>
+          <p className="text-[11px] text-slate-400 font-mono">{subtitle}</p>
+        </div>
+        <span
+          className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase border ${
+            isBalanced
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+              : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+          }`}
+        >
+          {isBalanced ? 'Balanced' : 'Unbalanced'}
+        </span>
+      </div>
+
+      {/* Polar Vector Canvas */}
+      <div className="relative flex items-center justify-center my-1">
+        <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[205px] h-auto overflow-visible">
+          {/* Reference concentric rings */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={maxRadius}
+            fill="none"
+            stroke="#1e293b"
+            strokeWidth="1"
+            strokeDasharray="3,3"
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={maxRadius * 0.5}
+            fill="none"
+            stroke="#1e293b"
+            strokeWidth="1"
+          />
+          {/* Crosshairs (0° TDC Up, 90° Right, 180° Down, 270° Left) */}
+          <line x1={cx} y1={cy - maxRadius - 8} x2={cx} y2={cy + maxRadius + 8} stroke="#334155" strokeWidth="1" />
+          <line x1={cx - maxRadius - 8} y1={cy} x2={cx + maxRadius + 8} y2={cy} stroke="#334155" strokeWidth="1" />
+
+          {/* Axis degree labels */}
+          <text x={cx} y={cy - maxRadius - 13} fill="#64748b" fontSize="8.5" textAnchor="middle">0°</text>
+          <text x={cx + maxRadius + 14} y={cy + 3} fill="#64748b" fontSize="8.5" textAnchor="middle">90°</text>
+          <text x={cx} y={cy + maxRadius + 16} fill="#64748b" fontSize="8.5" textAnchor="middle">180°</text>
+          <text x={cx - maxRadius - 15} y={cy + 3} fill="#64748b" fontSize="8.5" textAnchor="middle">270°</text>
+
+          {/* Individual Cylinder / Bank Vectors */}
+          {vectors.map((v, idx) => {
+            const c = polarToCart(scale(v.mag), v.angle);
+            return renderArrow(
+              cx,
+              cy,
+              cx + c.x,
+              cy - c.y,
+              '#94a3b8',
+              1.6,
+              false,
+              v.shortLabel || `${idx + 1}`
+            );
+          })}
+
+          {/* Resultant Vector */}
+          {!isBalanced &&
+            renderArrow(cx, cy, resX, resY, color, 3.2, false, 'R')}
+
+          {/* Center Pivot */}
+          <circle cx={cx} cy={cy} r="3.5" fill="#f8fafc" stroke="#0f172a" strokeWidth="1.5" />
+          {isBalanced && (
+            <circle cx={cx} cy={cy} r="8" fill="none" stroke="#10b981" strokeWidth="1.5" />
+          )}
+        </svg>
+      </div>
+
+      {/* Numerical Readout */}
+      <div className="bg-slate-950/70 rounded-lg p-2 border border-slate-800/80 text-xs space-y-1">
+        <div className="flex justify-between items-center">
+          <span className="text-slate-400">Resultant |R|:</span>
+          <span className="font-mono font-bold text-slate-100">
+            {resultant.mag < 1e-3 ? '0.00' : resultant.mag.toFixed(2)} N
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-slate-400">Direction ∠:</span>
+          <span className="font-mono text-slate-200">
+            {isBalanced ? '— (Zero)' : `${resultant.angle.toFixed(1)}°`}
+          </span>
+        </div>
+        <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono pt-0.5 border-t border-slate-800/70">
+          <span>ΣFx: {resultant.x.toFixed(1)} N</span>
+          <span>ΣFy: {resultant.y.toFixed(1)} N</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Live Animated Engine Kinematic Schematic (Radial & V-Engine)
+ */
+const EngineKinematicCanvas = ({
+  engineType,
+  crankAngle,
+  radius,
+  conRod,
+  cylinderAngles,
+  totalForceVector,
+  vAngle,
+  numRows,
+  rowCrankOffsets,
+  selectedRowIdx
+}) => {
+  const width = 440;
+  const height = 360;
+  const cx = width / 2;
+  const cy = height / 2 + 12;
+
+  // Visual scaling for crank and connecting rod
+  const nRatio = Math.max(1.4, conRod / Math.max(radius, 0.001));
+  const visR = 36;
+  const visL = Math.min(115, Math.max(62, visR * Math.min(nRatio, 3.2)));
+
+  // Active crank angle to render (for multi-row V-engine, show selected row's crank throw)
+  const activeCrankDeg =
+    engineType === 'v-engine'
+      ? normDeg(crankAngle + (rowCrankOffsets[selectedRowIdx] || 0))
+      : normDeg(crankAngle);
+
+  const crankRad = deg2rad(activeCrankDeg);
+  // Crankpin position (0° is UP, clockwise positive)
+  const pinX = cx + visR * Math.sin(crankRad);
+  const pinY = cy - visR * Math.cos(crankRad);
+
+  // Resultant total force overlay vector
+  const forceScale = 52;
+  const fCart = polarToCart(
+    totalForceVector.mag > 1e-3 ? forceScale : 0,
+    totalForceVector.angle
+  );
+
+  return (
+    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-between shadow-lg">
+      <div className="w-full flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <Compass className="w-4 h-4 text-indigo-400" />
+            {engineType === 'radial'
+              ? `Radial Engine Kinematics (${cylinderAngles.length}-Cyl Common Crank)`
+              : `V-Engine Cross-Section (2α = ${vAngle}°, Row ${selectedRowIdx + 1}/${numRows})`}
+          </h3>
+          <p className="text-[11px] text-slate-400">
+            Crank Angle θ = {activeCrankDeg.toFixed(1)}° • Obliquity Ratio n = l/r = {nRatio.toFixed(2)}
+          </p>
+        </div>
+        <div className="text-right text-[11px] font-mono text-slate-400">
+          <span className="inline-flex items-center gap-1 text-rose-400 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+            Total Unbalance
+          </span>
+        </div>
+      </div>
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[440px] h-auto">
+        <defs>
+          <radialGradient id="crankcaseGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#1e293b" />
+            <stop offset="100%" stopColor="#0f172a" />
+          </radialGradient>
+        </defs>
+
+        {/* Outer Crankcase Circle */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={visR + 16}
+          fill="url(#crankcaseGrad)"
+          stroke="#334155"
+          strokeWidth="2"
+        />
+
+        {/* Crankpin Path Circle */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={visR}
+          fill="none"
+          stroke="#475569"
+          strokeWidth="1.2"
+          strokeDasharray="4,4"
+        />
+
+        {/* Vertical Reference Line (0° TDC) */}
+        <line
+          x1={cx}
+          y1={20}
+          x2={cx}
+          y2={height - 20}
+          stroke="#1e293b"
+          strokeWidth="1"
+          strokeDasharray="3,3"
+        />
+
+        {/* Render each cylinder axis, liner, piston, and connecting rod */}
+        {cylinderAngles.map((cyl, idx) => {
+          const psiRad = deg2rad(cyl.angle);
+          const dirX = Math.sin(psiRad);
+          const dirY = -Math.cos(psiRad);
+          const perpX = Math.cos(psiRad);
+          const perpY = Math.sin(psiRad);
+
+          // Exact slider-crank kinematics along cylinder axis psi:
+          // Relative angle theta_i = activeCrankDeg - cyl.angle
+          const thetaRel = deg2rad(activeCrankDeg - cyl.angle);
+          const sinPhi = Math.sin(thetaRel) / nRatio;
+          const cosPhi = Math.sqrt(Math.max(0, 1 - sinPhi * sinPhi));
+          const pistonDist = visR * Math.cos(thetaRel) + visL * cosPhi;
+
+          const wristX = cx + pistonDist * dirX;
+          const wristY = cy + pistonDist * dirY;
+
+          // Cylinder sleeve bounds
+          const linerInner = visL - visR + 8;
+          const linerOuter = visL + visR + 24;
+          const boreHalf = 15;
+
+          const p1x = cx + linerInner * dirX - boreHalf * perpX;
+          const p1y = cy + linerInner * dirY - boreHalf * perpY;
+          const p2x = cx + linerOuter * dirX - boreHalf * perpX;
+          const p2y = cy + linerOuter * dirY - boreHalf * perpY;
+
+          const p3x = cx + linerInner * dirX + boreHalf * perpX;
+          const p3y = cy + linerInner * dirY + boreHalf * perpY;
+          const p4x = cx + linerOuter * dirX + boreHalf * perpX;
+          const p4y = cy + linerOuter * dirY + boreHalf * perpY;
+
+          const labelDist = linerOuter + 14;
+          const lblX = cx + labelDist * dirX;
+          const lblY = cy + labelDist * dirY;
+
+          return (
+            <g key={`cyl-${idx}`}>
+              {/* Line of stroke */}
+              <line
+                x1={cx}
+                y1={cy}
+                x2={cx + (linerOuter + 4) * dirX}
+                y2={cy + (linerOuter + 4) * dirY}
+                stroke="#334155"
+                strokeWidth="1"
+                strokeDasharray="4,3"
+              />
+
+              {/* Cylinder Walls */}
+              <line x1={p1x} y1={p1y} x2={p2x} y2={p2y} stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1={p3x} y1={p3y} x2={p4x} y2={p4y} stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" />
+              <line x1={p2x} y1={p2y} x2={p4x} y2={p4y} stroke="#475569" strokeWidth="2" />
+
+              {/* Connecting Rod */}
+              <line
+                x1={pinX}
+                y1={pinY}
+                x2={wristX}
+                y2={wristY}
+                stroke="#94a3b8"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+              <line
+                x1={pinX}
+                y1={pinY}
+                x2={wristX}
+                y2={wristY}
+                stroke="#cbd5e1"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+
+              {/* Piston Head */}
+              <g
+                transform={`translate(${wristX}, ${wristY}) rotate(${cyl.angle})`}
+              >
+                <rect
+                  x={-12}
+                  y={-12}
+                  width={24}
+                  height={22}
+                  rx={3}
+                  fill="#3b82f6"
+                  fillOpacity="0.85"
+                  stroke="#93c5fd"
+                  strokeWidth="1.5"
+                />
+                {/* Piston rings */}
+                <line x1={-11} y1={-8} x2={11} y2={-8} stroke="#1e3a8a" strokeWidth="1.5" />
+                <line x1={-11} y1={-5} x2={11} y2={-5} stroke="#1e3a8a" strokeWidth="1.5" />
+                <circle cx={0} cy={2} r={3} fill="#e2e8f0" />
+              </g>
+
+              {/* Cylinder Label */}
+              <text
+                x={lblX}
+                y={lblY}
+                fill="#cbd5e1"
+                fontSize="11"
+                fontWeight="700"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {cyl.label} ({cyl.angle.toFixed(0)}°)
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Crank Web */}
+        <line
+          x1={cx}
+          y1={cy}
+          x2={pinX}
+          y2={pinY}
+          stroke="#f59e0b"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
+
+        {/* Total Unbalanced Force Vector from Crank Center */}
+        {totalForceVector.mag > 1e-3 && (
+          <g>
+            <line
+              x1={cx}
+              y1={cy}
+              x2={cx + fCart.x}
+              y2={cy - fCart.y}
+              stroke="#f43f5e"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <circle cx={cx + fCart.x} cy={cy - fCart.y} r="4" fill="#f43f5e" />
+          </g>
+        )}
+
+        {/* Main Bearing & Crankpin Journals */}
+        <circle cx={cx} cy={cy} r="6.5" fill="#f8fafc" stroke="#0f172a" strokeWidth="2" />
+        <circle cx={pinX} cy={pinY} r="5" fill="#fbbf24" stroke="#78350f" strokeWidth="1.5" />
+      </svg>
+
+      {/* Bottom Legend Bar */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-1.5 bg-amber-500 rounded-sm inline-block" /> Crank Throw (r)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-1.5 bg-slate-400 rounded-sm inline-block" /> Con-Rod (l)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm inline-block" /> Piston (m)
+          </span>
+        </div>
+        <span className="font-mono text-slate-300">
+          {totalForceVector.mag < 1e-3
+            ? 'Net Force = 0 N (Balanced)'
+            : `Net F = ${totalForceVector.mag.toFixed(1)} N @ ${totalForceVector.angle.toFixed(1)}°`}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default function App() {
+  // --- ENGINE CONFIGURATION STATE ---
+  const [engineType, setEngineType] = useState('radial'); // 'radial' | 'v-engine'
+
+  // Radial Engine Settings
+  const [numCylinders, setNumCylinders] = useState(3);
+  const [evenSpacing, setEvenSpacing] = useState(true);
+  const [customCylAngles, setCustomCylAngles] = useState([0, 120, 240, 90, 180, 270, 45, 135, 225]);
+
+  // V-Engine Settings
+  const [vAngle, setVAngle] = useState(120); // Total V angle (2α), e.g. 60°, 90°, 120°
+  const [numRows, setNumRows] = useState(4); // Number of crank throws / V-pairs
+  const [rowCrankOffsets, setRowCrankOffsets] = useState([0, 180, 180, 360, 0, 180]);
+  const [rowSpacing, setRowSpacing] = useState(0.2); // d in meters
+  const [selectedRowIdx, setSelectedRowIdx] = useState(0);
+
+  // Common Kinematic & Dynamic Parameters
+  const [crankAngle, setCrankAngle] = useState(0); // θ_crank in degrees
+  const [mass, setMass] = useState(2.0); // m (kg)
+  const [radius, setRadius] = useState(0.06); // r (m)
+  const [conRod, setConRod] = useState(0.18); // l (m)
+  const [speedValue, setSpeedValue] = useState(2000);
+  const [speedUnit, setSpeedUnit] = useState('rpm'); // 'rpm' | 'rads'
+
+  // Custom Direct Force Override Option
+  const [forceOverrideMode, setForceOverrideMode] = useState(false);
+  const [customPrimaryForce, setCustomPrimaryForce] = useState(5263.8);
+
+  // Animation Controls
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [animSpeed, setAnimSpeed] = useState(1);
+  const lastFrameRef = useRef(null);
+
+  // Active Preset tracking
+  const [activePresetId, setActivePresetId] = useState('radial-3');
+
+  // Animation loop using requestAnimationFrame
+  useEffect(() => {
+    if (!isPlaying) {
+      lastFrameRef.current = null;
+      return;
+    }
+
+    let animationFrameId;
+    const step = (timestamp) => {
+      if (lastFrameRef.current !== null) {
+        const dt = (timestamp - lastFrameRef.current) / 1000;
+        // Smooth visual rotation speed scaled by user speed multiplier
+        const degPerSec = 90 * animSpeed;
+        setCrankAngle((prev) => (prev + degPerSec * dt) % 360);
+      }
+      lastFrameRef.current = timestamp;
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPlaying, animSpeed]);
+
+  // Apply Preset Handler
+  const applyPreset = (preset) => {
+    setActivePresetId(preset.id);
+    setEngineType(preset.engineType);
+    setCrankAngle(preset.crankAngle);
+    setMass(preset.mass);
+    setRadius(preset.radius);
+    setConRod(preset.conRod);
+    setSpeedValue(preset.speedValue);
+    setSpeedUnit(preset.speedUnit);
+    setForceOverrideMode(preset.forceOverrideMode);
+    if (preset.customPrimaryForce) {
+      setCustomPrimaryForce(preset.customPrimaryForce);
+    }
+
+    if (preset.engineType === 'radial') {
+      setNumCylinders(preset.numCylinders);
+      setEvenSpacing(preset.evenSpacing);
+      if (preset.customCylAngles) {
+        setCustomCylAngles((prev) => {
+          const updated = [...prev];
+          preset.customCylAngles.forEach((ang, i) => {
+            updated[i] = ang;
+          });
+          return updated;
+        });
+      }
+    } else {
+      setVAngle(preset.vAngle);
+      setNumRows(preset.numRows);
+      setRowCrankOffsets((prev) => {
+        const updated = [...prev];
+        preset.rowCrankOffsets.forEach((ang, i) => {
+          updated[i] = ang;
+        });
+        return updated;
+      });
+      setRowSpacing(preset.rowSpacing);
+      setSelectedRowIdx(0);
+    }
+  };
+
+  // --- CORE PHYSICS & DIRECT/REVERSE CRANK CALCULATIONS ---
+  const physics = useMemo(() => {
+    // 1. Angular velocity ω (rad/s)
+    const omega =
+      speedUnit === 'rpm' ? (2 * Math.PI * speedValue) / 60 : speedValue;
+    const rpm =
+      speedUnit === 'rpm' ? speedValue : (speedValue * 60) / (2 * Math.PI);
+
+    // 2. Obliquity ratio n = l / r
+    const safeR = Math.max(radius, 0.0001);
+    const n = conRod / safeR;
+
+    // 3. Base Primary & Secondary Force Magnitudes per cylinder
+    // Primary total per cylinder = m * r * ω² -> Direct = 0.5 * m * r * ω², Reverse = 0.5 * m * r * ω²
+    // Secondary total per cylinder = (m * r * ω²) / n -> Direct = (m * r * ω²) / (2n), Reverse = (m * r * ω²) / (2n)
+    const F_P_base = forceOverrideMode
+      ? customPrimaryForce
+      : mass * safeR * omega * omega;
+
+    const F_PD_mag = 0.5 * F_P_base;
+    const F_PR_mag = 0.5 * F_P_base;
+    const F_SD_mag = F_P_base / (2 * Math.max(n, 0.01));
+    const F_SR_mag = F_P_base / (2 * Math.max(n, 0.01));
+
+    // 4. Build list of all active cylinders with their axis angle ψ_i, crank throw angle θ_c_i, and axial plane z_i
+    const cylinders = [];
+
+    if (engineType === 'radial') {
+      for (let i = 0; i < numCylinders; i++) {
+        const psi = evenSpacing
+          ? (i * 360) / numCylinders
+          : normDeg(customCylAngles[i] || 0);
+        cylinders.push({
+          id: i + 1,
+          label: `Cyl ${i + 1}`,
+          shortLabel: `${i + 1}`,
+          rowIdx: 0,
+          planeZ: 0,
+          axisAngle: psi,
+          throwAngle: normDeg(crankAngle)
+        });
+      }
+    } else {
+      // V-Engine: Each row k has 2 banks: LHS (-vAngle/2) and RHS (+vAngle/2)
+      const halfV = vAngle / 2;
+      const centerZ = ((numRows - 1) * rowSpacing) / 2;
+
+      for (let rIdx = 0; rIdx < numRows; rIdx++) {
+        const throwDeg = normDeg(crankAngle + (rowCrankOffsets[rIdx] || 0));
+        const planeZ = rIdx * rowSpacing - centerZ; // distance from central reference plane
+
+        // LHS Bank cylinder (e.g., -60° = 300°)
+        cylinders.push({
+          id: rIdx * 2 + 1,
+          label: `R${rIdx + 1}-L`,
+          shortLabel: `${rIdx + 1}L`,
+          rowIdx: rIdx,
+          planeZ,
+          axisAngle: normDeg(-halfV),
+          throwAngle: throwDeg
+        });
+
+        // RHS Bank cylinder (e.g., +60° = 60°)
+        cylinders.push({
+          id: rIdx * 2 + 2,
+          label: `R${rIdx + 1}-R`,
+          shortLabel: `${rIdx + 1}R`,
+          rowIdx: rIdx,
+          planeZ,
+          axisAngle: normDeg(halfV),
+          throwAngle: throwDeg
+        });
+      }
+    }
+
+    // 5. Compute Direct & Reverse Crank vectors for each cylinder
+    // Rule from Notes (p.49):
+    // Let ψ = cylinder axis angle, θ_c = crank angle.
+    // Relative crank angle from cylinder line: θ = θ_c - ψ
+    // - F_PD acts along crank: angle = ψ + θ = θ_c
+    // - F_PR is mirror image of F_PD about cylinder line ψ: angle = ψ - θ = 2ψ - θ_c
+    // - F_SD makes angle 2θ from cylinder line: angle = ψ + 2θ = 2θ_c - ψ
+    // - F_SR is mirror image of F_SD about cylinder line ψ: angle = ψ - 2θ = 3ψ - 2θ_c
+
+    const detailedCylinders = cylinders.map((c) => {
+      const psi = c.axisAngle;
+      const thetaRel = normDeg(c.throwAngle - psi);
+
+      const angPD = normDeg(c.throwAngle);
+      const angPR = normDeg(2 * psi - c.throwAngle);
+      const angSD = normDeg(2 * c.throwAngle - psi);
+      const angSR = normDeg(3 * psi - 2 * c.throwAngle);
+
+      const vecPD = polarToCart(F_PD_mag, angPD);
+      const vecPR = polarToCart(F_PR_mag, angPR);
+      const vecSD = polarToCart(F_SD_mag, angSD);
+      const vecSR = polarToCart(F_SR_mag, angSR);
+
+      return {
+        ...c,
+        thetaRel,
+        pd: { mag: F_PD_mag, angle: angPD, ...vecPD, shortLabel: c.shortLabel },
+        pr: { mag: F_PR_mag, angle: angPR, ...vecPR, shortLabel: c.shortLabel },
+        sd: { mag: F_SD_mag, angle: angSD, ...vecSD, shortLabel: c.shortLabel },
+        sr: { mag: F_SR_mag, angle: angSR, ...vecSR, shortLabel: c.shortLabel }
+      };
+    });
+
+    // Helper to sum a vector list
+    const sumVectors = (items) => {
+      let sx = 0;
+      let sy = 0;
+      items.forEach((it) => {
+        sx += it.x;
+        sy += it.y;
+      });
+      const pol = cartToPolar(sx, sy);
+      return {
+        x: sx,
+        y: sy,
+        mag: pol.mag,
+        angle: pol.angle,
+        isBalanced: pol.mag < Math.max(1e-2, F_P_base * 1e-4)
+      };
+    };
+
+    const resPD = sumVectors(detailedCylinders.map((c) => c.pd));
+    const resPR = sumVectors(detailedCylinders.map((c) => c.pr));
+    const resSD = sumVectors(detailedCylinders.map((c) => c.sd));
+    const resSR = sumVectors(detailedCylinders.map((c) => c.sr));
+
+    // Total Unbalanced Force Vector
+    const totX = resPD.x + resPR.x + resSD.x + resSR.x;
+    const totY = resPD.y + resPR.y + resSD.y + resSR.y;
+    const totPol = cartToPolar(totX, totY);
+    const resTotal = {
+      x: totX,
+      y: totY,
+      mag: totPol.mag,
+      angle: totPol.angle,
+      isBalanced:
+        resPD.isBalanced &&
+        resPR.isBalanced &&
+        resSD.isBalanced &&
+        resSR.isBalanced
+    };
+
+    // Row-by-row summary and Unbalanced Couples (for multi-row V-engines)
+    const rowSummaries = [];
+    let couplePrimaryX = 0;
+    let couplePrimaryY = 0;
+    let coupleSecondaryX = 0;
+    let coupleSecondaryY = 0;
+
+    if (engineType === 'v-engine') {
+      for (let rIdx = 0; rIdx < numRows; rIdx++) {
+        const rowCyls = detailedCylinders.filter((c) => c.rowIdx === rIdx);
+        const rPD = sumVectors(rowCyls.map((c) => c.pd));
+        const rPR = sumVectors(rowCyls.map((c) => c.pr));
+        const rSD = sumVectors(rowCyls.map((c) => c.sd));
+        const rSR = sumVectors(rowCyls.map((c) => c.sr));
+
+        const rTotX = rPD.x + rPR.x + rSD.x + rSR.x;
+        const rTotY = rPD.y + rPR.y + rSD.y + rSR.y;
+        const rTotPol = cartToPolar(rTotX, rTotY);
+
+        const z = rowCyls[0]?.planeZ || 0;
+        // Couple = Force * distance from central reference plane
+        couplePrimaryX += (rPD.x + rPR.x) * z;
+        couplePrimaryY += (rPD.y + rPR.y) * z;
+        coupleSecondaryX += (rSD.x + rSR.x) * z;
+        coupleSecondaryY += (rSD.y + rSR.y) * z;
+
+        rowSummaries.push({
+          rowIdx: rIdx,
+          planeZ: z,
+          throwAngle: rowCyls[0]?.throwAngle || 0,
+          pd: rPD,
+          pr: rPR,
+          sd: rSD,
+          sr: rSR,
+          total: {
+            x: rTotX,
+            y: rTotY,
+            mag: rTotPol.mag,
+            angle: rTotPol.angle
+          }
+        });
+      }
+    }
+
+    const resCouplePrimary = cartToPolar(couplePrimaryX, couplePrimaryY);
+    const resCoupleSecondary = cartToPolar(coupleSecondaryX, coupleSecondaryY);
+    const resCoupleTotal = cartToPolar(
+      couplePrimaryX + coupleSecondaryX,
+      couplePrimaryY + coupleSecondaryY
+    );
+
+    const isCoupleBalanced =
+      engineType === 'radial' ||
+      numRows <= 1 ||
+      (resCouplePrimary.mag < 1e-2 && resCoupleSecondary.mag < 1e-2);
+
+    // Cylinder angles for the visual schematic
+    const schematicCylinders =
+      engineType === 'radial'
+        ? detailedCylinders.map((c) => ({
+            label: `C${c.id}`,
+            angle: c.axisAngle
+          }))
+        : [
+            { label: 'LHS', angle: normDeg(-vAngle / 2) },
+            { label: 'RHS', angle: normDeg(vAngle / 2) }
+          ];
+
+    return {
+      omega,
+      rpm,
+      n,
+      F_P_base,
+      F_PD_mag,
+      F_PR_mag,
+      F_SD_mag,
+      F_SR_mag,
+      detailedCylinders,
+      resPD,
+      resPR,
+      resSD,
+      resSR,
+      resTotal,
+      rowSummaries,
+      resCouplePrimary,
+      resCoupleSecondary,
+      resCoupleTotal,
+      isCoupleBalanced,
+      schematicCylinders
+    };
+  }, [
+    engineType,
+    numCylinders,
+    evenSpacing,
+    customCylAngles,
+    vAngle,
+    numRows,
+    rowCrankOffsets,
+    rowSpacing,
+    crankAngle,
+    mass,
+    radius,
+    conRod,
+    speedValue,
+    speedUnit,
+    forceOverrideMode,
+    customPrimaryForce
+  ]);
+
+  // Ensure selectedRowIdx stays in bounds when numRows changes
+  useEffect(() => {
+    if (selectedRowIdx >= numRows) {
+      setSelectedRowIdx(Math.max(0, numRows - 1));
+    }
+  }, [numRows, selectedRowIdx]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30">
+      {/* Top Engineering Header */}
+      <header className="border-b border-slate-800/90 bg-slate-900/75 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-bold tracking-tight text-white">
+                  Balancing of Reciprocating Masses
+                </h1>
+                <span className="hidden md:inline-block px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Direct & Reverse Crank Method
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Mechanics of Machines & Vibration • Radial & V-Engine Force/Couple Simulator
+              </p>
+            </div>
+          </div>
+
+          {/* Engine Type Switcher */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => {
+                setEngineType('radial');
+                setActivePresetId('');
+              }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                engineType === 'radial'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Radial Engine
+            </button>
+            <button
+              onClick={() => {
+                setEngineType('v-engine');
+                setActivePresetId('');
+              }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                engineType === 'v-engine'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              V-Engine
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Preset Bar from Lecture Notes */}
+      <div className="bg-slate-900/40 border-b border-slate-800/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 shrink-0 mr-1">
+            <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+            Lecture Note Examples:
+          </span>
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => applyPreset(preset)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all shrink-0 cursor-pointer flex items-center gap-2 ${
+                activePresetId === preset.id
+                  ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-200 shadow-sm'
+                  : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800/80'
+              }`}
+            >
+              <span>{preset.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* LEFT SIDEBAR: CUSTOM PARAMETERS (4 COLS) */}
+        <div className="lg:col-span-4 space-y-5">
+          {/* 1. Crank Rotation & Animation Card */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <RefreshCw className={`w-4 h-4 text-amber-400 ${isPlaying ? 'animate-spin' : ''}`} />
+                Crank Angle & Rotation
+              </h2>
+              <span className="font-mono text-sm font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20">
+                θ = {crankAngle.toFixed(1)}°
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="0.5"
+              value={crankAngle}
+              onChange={(e) => {
+                setCrankAngle(parseFloat(e.target.value));
+                setActivePresetId('');
+              }}
+              className="w-full accent-amber-500 cursor-pointer mb-3"
+            />
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    isPlaying
+                      ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  {isPlaying ? 'Pause' : 'Animate'}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCrankAngle(0);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1 cursor-pointer"
+                  title="Reset Crank to 0° (TDC)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  0° TDC
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 text-xs text-slate-400">
+                <span>Speed:</span>
+                {[0.5, 1, 2].map((spd) => (
+                  <button
+                    key={spd}
+                    onClick={() => setAnimSpeed(spd)}
+                    className={`px-2 py-1 rounded text-[11px] font-mono cursor-pointer ${
+                      animSpeed === spd
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {spd}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Engine Geometry & Crank Configuration Card */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-lg space-y-4">
+            <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-2.5">
+              <Settings2 className="w-4 h-4 text-indigo-400" />
+              {engineType === 'radial'
+                ? 'Radial Engine Crank & Cylinder Setup'
+                : 'V-Engine Bank & Crank Throw Setup'}
+            </h2>
+
+            {engineType === 'radial' ? (
+              <div className="space-y-3.5">
+                {/* Number of Cylinders */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <label className="text-slate-300 font-medium">Number of Cylinders / Cranks (N)</label>
+                    <span className="font-mono font-bold text-indigo-400">{numCylinders} Cylinders</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="9"
+                    step="1"
+                    value={numCylinders}
+                    onChange={(e) => {
+                      setNumCylinders(parseInt(e.target.value, 10));
+                      setActivePresetId('');
+                    }}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                    <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                  </div>
+                </div>
+
+                {/* Spacing Mode */}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-slate-300">Cylinder Angular Spacing</span>
+                  <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+                    <button
+                      onClick={() => setEvenSpacing(true)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer ${
+                        evenSpacing ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      Even ({(360 / numCylinders).toFixed(1)}°)
+                    </button>
+                    <button
+                      onClick={() => setEvenSpacing(false)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer ${
+                        !evenSpacing ? 'bg-indigo-600 text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      Custom Angles
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Cylinder Angles Editor */}
+                {!evenSpacing && (
+                  <div className="bg-slate-950/70 p-2.5 rounded-lg border border-slate-800 space-y-2">
+                    <p className="text-[11px] text-slate-400">
+                      Set angle ψ_i (degrees clockwise from vertical TDC):
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.from({ length: numCylinders }).map((_, idx) => (
+                        <div key={idx} className="flex flex-col">
+                          <label className="text-[10px] text-slate-400 mb-0.5">Cyl {idx + 1} (°)</label>
+                          <input
+                            type="number"
+                            value={customCylAngles[idx] ?? 0}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setCustomCylAngles((prev) => {
+                                const copy = [...prev];
+                                copy[idx] = val;
+                                return copy;
+                              });
+                            }}
+                            className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {/* V-Bank Angle */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <label className="text-slate-300 font-medium">V-Bank Angle (2α)</label>
+                    <span className="font-mono font-bold text-indigo-400">{vAngle}° (±{vAngle / 2}°)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="30"
+                    max="180"
+                    step="5"
+                    value={vAngle}
+                    onChange={(e) => {
+                      setVAngle(parseFloat(e.target.value));
+                      setActivePresetId('');
+                    }}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex gap-1.5 mt-1.5">
+                    {[60, 90, 120, 180].map((presetV) => (
+                      <button
+                        key={presetV}
+                        onClick={() => setVAngle(presetV)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+                          vAngle === presetV
+                            ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300'
+                            : 'bg-slate-950 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        {presetV === 180 ? '180° (Boxer)' : `${presetV}°`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Number of Crank Throws / Rows */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <label className="text-slate-300 font-medium">Crank Throws / Rows ({numRows * 2} Cyls)</label>
+                    <span className="font-mono font-bold text-indigo-400">{numRows} Rows (V-{numRows * 2})</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="6"
+                    step="1"
+                    value={numRows}
+                    onChange={(e) => {
+                      setNumRows(parseInt(e.target.value, 10));
+                      setActivePresetId('');
+                    }}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Crank Throw Angles per Row */}
+                <div className="bg-slate-950/70 p-2.5 rounded-lg border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400">Crank Throw Angles θ_k (°):</span>
+                    <span className="text-[10px] text-slate-500">Click row to inspect</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Array.from({ length: numRows }).map((_, rIdx) => (
+                      <div
+                        key={rIdx}
+                        onClick={() => setSelectedRowIdx(rIdx)}
+                        className={`p-1.5 rounded border cursor-pointer transition-colors ${
+                          selectedRowIdx === rIdx
+                            ? 'bg-indigo-950/50 border-indigo-500/60'
+                            : 'bg-slate-900 border-slate-800'
+                        }`}
+                      >
+                        <label className="text-[10px] text-slate-400 block mb-0.5">
+                          Row {rIdx + 1} ({String.fromCharCode(65 + rIdx)})
+                        </label>
+                        <input
+                          type="number"
+                          value={rowCrankOffsets[rIdx] ?? 0}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setRowCrankOffsets((prev) => {
+                              const copy = [...prev];
+                              copy[rIdx] = val;
+                              return copy;
+                            });
+                            setActivePresetId('');
+                          }}
+                          className="w-full bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row Spacing d */}
+                {numRows > 1 && (
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <label className="text-slate-300 font-medium">Row Axial Spacing (d)</label>
+                      <span className="font-mono text-slate-300">{rowSpacing.toFixed(2)} m</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={rowSpacing}
+                      onChange={(e) => setRowSpacing(Math.max(0.01, parseFloat(e.target.value) || 0.1))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Force, Mass, Geometry & Angular Speed Card */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-lg space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-cyan-400" />
+                Dynamic & Force Parameters
+              </h2>
+              <button
+                onClick={() => setForceOverrideMode(!forceOverrideMode)}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold border cursor-pointer transition-colors ${
+                  forceOverrideMode
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
+                }`}
+              >
+                {forceOverrideMode ? 'Custom Force Mode' : 'From m, r, ω'}
+              </button>
+            </div>
+
+            {/* Angular Speed */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <label className="text-slate-300 font-medium">Angular Speed (ω)</label>
+                <div className="flex bg-slate-950 rounded border border-slate-800 p-0.5">
+                  <button
+                    onClick={() => {
+                      if (speedUnit !== 'rpm') {
+                        setSpeedValue(Math.round((speedValue * 60) / (2 * Math.PI)));
+                        setSpeedUnit('rpm');
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                      speedUnit === 'rpm' ? 'bg-cyan-600 text-white' : 'text-slate-400'
+                    }`}
+                  >
+                    RPM
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (speedUnit !== 'rads') {
+                        setSpeedValue(parseFloat(((2 * Math.PI * speedValue) / 60).toFixed(2)));
+                        setSpeedUnit('rads');
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                      speedUnit === 'rads' ? 'bg-cyan-600 text-white' : 'text-slate-400'
+                    }`}
+                  >
+                    rad/s
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  step="10"
+                  value={speedValue}
+                  onChange={(e) => {
+                    setSpeedValue(Math.max(0, parseFloat(e.target.value) || 0));
+                    setActivePresetId('');
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                />
+                <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                  = {physics.omega.toFixed(1)} rad/s
+                </span>
+              </div>
+            </div>
+
+            {!forceOverrideMode ? (
+              <>
+                {/* Reciprocating Mass m */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">
+                      Piston Mass m (kg)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.1"
+                      value={mass}
+                      onChange={(e) => {
+                        setMass(Math.max(0.01, parseFloat(e.target.value) || 0.1));
+                        setActivePresetId('');
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">
+                      Crank Radius r (m)
+                    </label>
+                    <input
+                      type="number"
+                      min="0.005"
+                      step="0.005"
+                      value={radius}
+                      onChange={(e) => {
+                        setRadius(Math.max(0.001, parseFloat(e.target.value) || 0.01));
+                        setActivePresetId('');
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Connecting Rod Length l */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <label className="text-slate-300">Connecting Rod Length l (m)</label>
+                    <span className="font-mono text-cyan-400">
+                      Stroke = {(2 * radius * 1000).toFixed(0)} mm • n = l/r = {physics.n.toFixed(2)}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={conRod}
+                    onChange={(e) => {
+                      setConRod(Math.max(0.005, parseFloat(e.target.value) || 0.05));
+                      setActivePresetId('');
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3 bg-amber-950/20 border border-amber-500/30 p-3 rounded-lg">
+                <div>
+                  <label className="text-xs text-amber-200 font-medium block mb-1">
+                    Custom Primary Inertia Force (F_P = m·r·ω²) [N]
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={customPrimaryForce}
+                    onChange={(e) => setCustomPrimaryForce(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[11px] text-slate-300 block mb-1">Crank r (m)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={radius}
+                      onChange={(e) => setRadius(Math.max(0.005, parseFloat(e.target.value) || 0.05))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-slate-300 block mb-1">Con-Rod l (m) [n={physics.n.toFixed(1)}]</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={conRod}
+                      onChange={(e) => setConRod(Math.max(0.01, parseFloat(e.target.value) || 0.15))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-mono text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Computed Per-Cylinder Component Magnitudes */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 text-xs space-y-1.5 font-mono">
+              <div className="flex justify-between text-slate-400">
+                <span>F_PD = F_PR = ½ m·r·ω² :</span>
+                <span className="text-indigo-300 font-bold">{physics.F_PD_mag.toFixed(2)} N</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>F_SD = F_SR = (m·r·ω²)/(2n) :</span>
+                <span className="text-cyan-300 font-bold">{physics.F_SD_mag.toFixed(2)} N</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT DASHBOARD: VISUALIZATION, BALANCE STATUS & VECTOR DIAGRAMS (8 COLS) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Top Overall Balance Status Banner */}
+          <div
+            className={`rounded-xl p-4 border shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+              physics.resTotal.isBalanced && physics.isCoupleBalanced
+                ? 'bg-emerald-950/30 border-emerald-500/40'
+                : 'bg-amber-950/25 border-amber-500/40'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {physics.resTotal.isBalanced && physics.isCoupleBalanced ? (
+                <CheckCircle2 className="w-7 h-7 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-7 h-7 text-amber-400 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-bold text-white">
+                    {physics.resTotal.isBalanced && physics.isCoupleBalanced
+                      ? 'SYSTEM COMPLETELY BALANCED (Forces & Couples = 0)'
+                      : !physics.resTotal.isBalanced
+                      ? 'UNBALANCED INERTIA FORCE DETECTED'
+                      : 'FORCES BALANCED • UNBALANCED COUPLE PRESENT'}
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-300 mt-1">
+                  Net Resultant Force:{' '}
+                  <strong className="font-mono text-white">
+                    {physics.resTotal.mag < 1e-3
+                      ? '0.00 N'
+                      : `${physics.resTotal.mag.toFixed(2)} N @ ${physics.resTotal.angle.toFixed(1)}°`}
+                  </strong>
+                  {engineType === 'v-engine' && numRows > 1 && (
+                    <>
+                      {' '}
+                      • Net Resultant Couple:{' '}
+                      <strong className="font-mono text-white">
+                        {physics.resCoupleTotal.mag < 1e-3
+                          ? '0.00 N·m'
+                          : `${physics.resCoupleTotal.mag.toFixed(2)} N·m @ ${physics.resCoupleTotal.angle.toFixed(1)}°`}
+                      </strong>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick 4-Component Pills */}
+            <div className="grid grid-cols-4 gap-1.5 shrink-0 w-full sm:w-auto">
+              {[
+                { label: 'F_PD', bal: physics.resPD.isBalanced },
+                { label: 'F_PR', bal: physics.resPR.isBalanced },
+                { label: 'F_SD', bal: physics.resSD.isBalanced },
+                { label: 'F_SR', bal: physics.resSR.isBalanced }
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className={`px-2.5 py-1.5 rounded-lg border text-center ${
+                    item.bal
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                      : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                  }`}
+                >
+                  <div className="text-[10px] font-mono font-bold">{item.label}</div>
+                  <div className="text-[9px] uppercase tracking-wider mt-0.5">
+                    {item.bal ? 'BAL' : 'UNBAL'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Middle Section: Live Engine Schematic + Formula Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <div className="md:col-span-7">
+              <EngineKinematicCanvas
+                engineType={engineType}
+                crankAngle={crankAngle}
+                radius={radius}
+                conRod={conRod}
+                cylinderAngles={physics.schematicCylinders}
+                totalForceVector={physics.resTotal}
+                vAngle={vAngle}
+                numRows={numRows}
+                rowCrankOffsets={rowCrankOffsets}
+                selectedRowIdx={selectedRowIdx}
+              />
+            </div>
+
+            {/* Analytical Formula & Substitution Breakdown */}
+            <div className="md:col-span-5 bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2 mb-3">
+                  <Info className="w-4 h-4 text-indigo-400" />
+                  Direct & Reverse Crank Equations
+                </h3>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/90">
+                    <div className="text-indigo-400 font-semibold mb-0.5">1. Primary Direct Crank (F_PD)</div>
+                    <div className="font-mono text-[11px] text-slate-300">
+                      Mag = ½ m·r·ω² = {physics.F_PD_mag.toFixed(1)} N
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Acts outward along crank (angle θ_c, speed +ω)
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/90">
+                    <div className="text-purple-400 font-semibold mb-0.5">2. Primary Reverse Crank (F_PR)</div>
+                    <div className="font-mono text-[11px] text-slate-300">
+                      Mag = ½ m·r·ω² = {physics.F_PR_mag.toFixed(1)} N
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Mirror of F_PD about cylinder line ψ (angle 2ψ − θ_c, speed −ω)
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/90">
+                    <div className="text-cyan-400 font-semibold mb-0.5">3. Secondary Direct Crank (F_SD)</div>
+                    <div className="font-mono text-[11px] text-slate-300">
+                      Mag = (m·r·ω²)/(2n) = {physics.F_SD_mag.toFixed(1)} N
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Angle 2θ from cylinder line (angle 2θ_c − ψ, speed +2ω)
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800/90">
+                    <div className="text-emerald-400 font-semibold mb-0.5">4. Secondary Reverse Crank (F_SR)</div>
+                    <div className="font-mono text-[11px] text-slate-300">
+                      Mag = (m·r·ω²)/(2n) = {physics.F_SR_mag.toFixed(1)} N
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      Mirror of F_SD about cylinder line ψ (angle 3ψ − 2θ_c, speed −2ω)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between font-mono">
+                <span>Total Cylinders: {physics.detailedCylinders.length}</span>
+                <span>ω = {physics.omega.toFixed(1)} rad/s</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Four Vector Diagrams Grid (Primary Direct, Primary Reverse, Secondary Direct, Secondary Reverse) */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-cyan-400" />
+                Crank Vector Diagrams & Resultant Force Polygons
+              </h3>
+              <span className="text-[11px] text-slate-400">
+                Grey arrows = Individual cylinders • Colored arrow = Resultant R
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <VectorDiagram
+                title="Primary Direct"
+                subtitle="F_PD (speed +ω)"
+                vectors={physics.detailedCylinders.map((c) => c.pd)}
+                resultant={physics.resPD}
+                color="#6366f1"
+                isBalanced={physics.resPD.isBalanced}
+                maxScaleForce={Math.max(physics.resPD.mag, physics.F_PD_mag * 1.5)}
+              />
+
+              <VectorDiagram
+                title="Primary Reverse"
+                subtitle="F_PR (speed −ω)"
+                vectors={physics.detailedCylinders.map((c) => c.pr)}
+                resultant={physics.resPR}
+                color="#a855f7"
+                isBalanced={physics.resPR.isBalanced}
+                maxScaleForce={Math.max(physics.resPR.mag, physics.F_PR_mag * 1.5)}
+              />
+
+              <VectorDiagram
+                title="Secondary Direct"
+                subtitle="F_SD (speed +2ω)"
+                vectors={physics.detailedCylinders.map((c) => c.sd)}
+                resultant={physics.resSD}
+                color="#06b6d4"
+                isBalanced={physics.resSD.isBalanced}
+                maxScaleForce={Math.max(physics.resSD.mag, physics.F_SD_mag * 1.5)}
+              />
+
+              <VectorDiagram
+                title="Secondary Reverse"
+                subtitle="F_SR (speed −2ω)"
+                vectors={physics.detailedCylinders.map((c) => c.sr)}
+                resultant={physics.resSR}
+                color="#10b981"
+                isBalanced={physics.resSR.isBalanced}
+                maxScaleForce={Math.max(physics.resSR.mag, physics.F_SR_mag * 1.5)}
+              />
+            </div>
+          </div>
+
+          {/* V-Engine Multi-Row & Couple Analysis Section */}
+          {engineType === 'v-engine' && (
+            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-lg space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-100">
+                    V-Engine Row-by-Row Forces & Unbalanced Couples (Reference: Central Plane)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Each row combines LHS (−{vAngle / 2}°) and RHS (+{vAngle / 2}°) banks on a shared crankpin
+                  </p>
+                </div>
+                <div className="flex gap-2 text-xs font-mono">
+                  <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-indigo-300">
+                    Primary Couple M_P: {physics.resCouplePrimary.mag.toFixed(2)} N·m
+                  </span>
+                  <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-cyan-300">
+                    Secondary Couple M_S: {physics.resCoupleSecondary.mag.toFixed(2)} N·m
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-semibold">
+                      <th className="py-2 px-2">Row</th>
+                      <th className="py-2 px-2">Plane z (m)</th>
+                      <th className="py-2 px-2">Crank θ (°)</th>
+                      <th className="py-2 px-2">Row F_PD</th>
+                      <th className="py-2 px-2">Row F_PR</th>
+                      <th className="py-2 px-2">Row F_SD</th>
+                      <th className="py-2 px-2">Row F_SR</th>
+                      <th className="py-2 px-2">Row Total F</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {physics.rowSummaries.map((r) => (
+                      <tr
+                        key={r.rowIdx}
+                        onClick={() => setSelectedRowIdx(r.rowIdx)}
+                        className={`cursor-pointer transition-colors ${
+                          selectedRowIdx === r.rowIdx
+                            ? 'bg-indigo-950/40'
+                            : 'hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <td className="py-2 px-2 font-sans font-bold text-slate-200">
+                          Row {r.rowIdx + 1} ({String.fromCharCode(65 + r.rowIdx)})
+                        </td>
+                        <td className="py-2 px-2 text-slate-300">{r.planeZ.toFixed(3)}</td>
+                        <td className="py-2 px-2 text-amber-400">{r.throwAngle.toFixed(1)}°</td>
+                        <td className="py-2 px-2 text-indigo-300">
+                          {r.pd.mag.toFixed(1)}N @{r.pd.angle.toFixed(0)}°
+                        </td>
+                        <td className="py-2 px-2 text-purple-300">
+                          {r.pr.mag.toFixed(1)}N @{r.pr.angle.toFixed(0)}°
+                        </td>
+                        <td className="py-2 px-2 text-cyan-300">
+                          {r.sd.mag.toFixed(1)}N @{r.sd.angle.toFixed(0)}°
+                        </td>
+                        <td className="py-2 px-2 text-emerald-300">
+                          {r.sr.mag.toFixed(1)}N @{r.sr.angle.toFixed(0)}°
+                        </td>
+                        <td className="py-2 px-2 font-bold text-rose-300">
+                          {r.total.mag.toFixed(1)}N @{r.total.angle.toFixed(0)}°
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Detailed Cylinder Vector Angle Table */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-lg">
+            <h3 className="text-sm font-bold text-slate-100 mb-3">
+              Individual Cylinder Direct & Reverse Crank Vector Angles
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 font-semibold">
+                    <th className="py-2 px-2">Cylinder</th>
+                    <th className="py-2 px-2">Axis ψ</th>
+                    <th className="py-2 px-2">Rel. Crank θ</th>
+                    <th className="py-2 px-2 text-indigo-400">F_PD Angle</th>
+                    <th className="py-2 px-2 text-purple-400">F_PR Angle</th>
+                    <th className="py-2 px-2 text-cyan-400">F_SD Angle</th>
+                    <th className="py-2 px-2 text-emerald-400">F_SR Angle</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {physics.detailedCylinders.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-800/30">
+                      <td className="py-2 px-2 font-sans font-semibold text-slate-200">{c.label}</td>
+                      <td className="py-2 px-2 text-slate-300">{c.axisAngle.toFixed(1)}°</td>
+                      <td className="py-2 px-2 text-slate-300">{c.thetaRel.toFixed(1)}°</td>
+                      <td className="py-2 px-2 text-indigo-300">{c.pd.angle.toFixed(1)}°</td>
+                      <td className="py-2 px-2 text-purple-300">{c.pr.angle.toFixed(1)}°</td>
+                      <td className="py-2 px-2 text-cyan-300">{c.sd.angle.toFixed(1)}°</td>
+                      <td className="py-2 px-2 text-emerald-300">{c.sr.angle.toFixed(1)}°</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+```
